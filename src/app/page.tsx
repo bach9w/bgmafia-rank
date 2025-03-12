@@ -1,103 +1,173 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import { PlayerRanking, DailyStat } from "@/types/database.types";
+import { RankingTable } from "@/components/RankingTable";
+
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
+// Тип за показване на статистика с daily_stats
+type PlayerWithStats = {
+	id: string;
+	name: string;
+	daily_stats: DailyStat[];
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+	const [rankings, setRankings] = useState<PlayerRanking[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+	const fetchRankings = async () => {
+		try {
+			// Променяме заявката да извлича сумарните данни за всички дни
+			const { data: aggregatedData, error: aggregationError } =
+				await supabase.rpc("get_players_summary_stats");
+
+			if (aggregationError) {
+				// Ако RPC функцията не е налична, използваме алтернативна агрегация директно в заявката
+				console.warn(
+					"Грешка при извикване на RPC функцията:",
+					aggregationError,
+				);
+
+				// Извличаме данните ръчно със summing
+				const { data, error } = await supabase.from("players").select(`
+						id,
+						name,
+						daily_stats!inner (
+							date,
+							strength,
+							intelligence,
+							sex,
+							victories,
+							experience
+						)
+					`);
+
+				if (error) throw error;
+
+				// Трансформираме данните и сумираме стойностите за всеки играч
+				const playerMap = new Map<string, PlayerRanking>();
+
+				if (data) {
+					(data as PlayerWithStats[]).forEach((player) => {
+						if (!player.daily_stats || !Array.isArray(player.daily_stats))
+							return;
+
+						// Извличаме ID и име на играча
+						const playerId = player.id;
+						const playerName = player.name;
+
+						// Намираме или създаваме запис за играча
+						if (!playerMap.has(playerId)) {
+							playerMap.set(playerId, {
+								id: playerId,
+								name: playerName,
+								strength: 0,
+								intelligence: 0,
+								sex: 0,
+								victories: 0,
+								experience: 0,
+								total_score: 0,
+								date: new Date().toISOString().split("T")[0], // Текуща дата
+							});
+						}
+
+						// Сумираме стойностите за всички дни
+						const playerSummary = playerMap.get(playerId)!;
+						player.daily_stats.forEach((stat: Partial<DailyStat>) => {
+							playerSummary.strength += Number(stat.strength || 0);
+							playerSummary.intelligence += Number(stat.intelligence || 0);
+							playerSummary.sex += Number(stat.sex || 0);
+						});
+
+						// Обновяваме общия резултат
+						playerSummary.total_score =
+							playerSummary.strength +
+							playerSummary.intelligence +
+							playerSummary.sex;
+
+						// Съхраняваме обратно в Map-а
+						playerMap.set(playerId, playerSummary);
+					});
+				}
+
+				// Конвертираме Map-а в масив и сортираме по общ резултат
+				const playerRankings = Array.from(playerMap.values()).sort(
+					(a, b) => b.total_score - a.total_score,
+				);
+
+				setRankings(playerRankings);
+			} else {
+				// Обработка на резултатите от RPC функцията, ако е налична
+				setRankings(aggregatedData || []);
+			}
+		} catch (err) {
+			setError(
+				err instanceof Error
+					? err.message
+					: "Грешка при зареждане на класацията",
+			);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		fetchRankings();
+
+		// Subscribe to changes
+		const channel = supabase
+			.channel("player_rankings")
+			.on("postgres_changes", { event: "*", schema: "public" }, () => {
+				fetchRankings();
+			})
+			.subscribe();
+
+		return () => {
+			supabase.removeChannel(channel);
+		};
+	}, []);
+
+	return (
+		<main className="min-h-screen p-8 bg-black ">
+			<div className="max-w-7xl mx-auto space-y-8">
+				<h1 className="text-3xl font-bold text-center mb-8 text-white">
+					Класация на Играчите
+				</h1>
+
+				<div className="flex flex-col gap-8 text-black">
+					<div className="">
+						<div className="flex flex-col md:flex-row justify-between bg-white items-center p-8">
+							<h2 className="text-xl font-semibold mb-4 text-black">
+								Обща класация (сума от всички дни)
+							</h2>
+							<div className="flex gap-2">
+								<Link href="/rankings">
+									<Button variant="outline">История на класациите</Button>
+								</Link>
+								<Link href="/rankings/upload">
+									<Button>Добави показатели</Button>
+								</Link>
+							</div>
+						</div>
+						{isLoading ? (
+							<div className="text-center py-8">Зареждане...</div>
+						) : error ? (
+							<div className="text-red-600 text-center py-8">{error}</div>
+						) : rankings.length === 0 ? (
+							<div className="text-center py-8">
+								Все още няма данни в класацията
+							</div>
+						) : (
+							<RankingTable rankings={rankings} />
+						)}
+					</div>
+				</div>
+			</div>
+		</main>
+	);
 }

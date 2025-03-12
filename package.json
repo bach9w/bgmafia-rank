@@ -1,27 +1,48 @@
 {
-  "name": "bgmafia",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.2.2"
-  },
-  "devDependencies": {
-    "typescript": "^5",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
-    "eslint": "^9",
-    "eslint-config-next": "15.2.2",
-    "@eslint/eslintrc": "^3"
-  }
+	"name": "bgmafia",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint",
+		"import-rankings": "ts-node -P ./tsconfig.scripts.json ./src/scripts/importRankings.ts",
+		"merge-duplicates": "ts-node -P ./tsconfig.scripts.json ./src/scripts/merge_duplicate_players.ts",
+		"add-unique-constraint": "ts-node -P ./tsconfig.scripts.json ./src/scripts/add_unique_constraint.ts"
+	},
+	"dependencies": {
+		"@radix-ui/react-dialog": "^1.1.6",
+		"@radix-ui/react-select": "^2.1.6",
+		"@radix-ui/react-slot": "^1.1.2",
+		"@supabase/auth-helpers-nextjs": "^0.10.0",
+		"@supabase/ssr": "^0.5.2",
+		"@supabase/supabase-js": "^2.49.1",
+		"class-variance-authority": "^0.7.1",
+		"clsx": "^2.1.1",
+		"dotenv": "^16.4.7",
+		"encoding": "^0.1.13",
+		"lucide-react": "^0.479.0",
+		"next": "15.2.2",
+		"openai": "^4.87.3",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"sharp": "^0.33.5",
+		"tailwind-merge": "^3.0.2",
+		"tailwindcss-animate": "^1.0.7",
+		"tesseract.js": "^6.0.0",
+		"uuid": "^11.1.0"
+	},
+	"devDependencies": {
+		"@eslint/eslintrc": "^3",
+		"@tailwindcss/postcss": "^4",
+		"@types/node": "^20",
+		"@types/react": "^19",
+		"@types/react-dom": "^19",
+		"eslint": "^9",
+		"eslint-config-next": "15.2.2",
+		"tailwindcss": "^4",
+		"ts-node": "^10.9.2",
+		"typescript": "^5"
+	}
 }
