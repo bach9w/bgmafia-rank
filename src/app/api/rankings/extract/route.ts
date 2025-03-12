@@ -62,46 +62,60 @@ export async function POST(request: NextRequest) {
 		const mimeType = file.type;
 
 		// Изпращаме заявка към OpenAI Vision API
-		const response = await openai.chat.completions.create({
-			model: "gpt-4o",
-			messages: [
-				{
-					role: "user",
-					content: [
-						{
-							type: "text",
-							text: `Моля, извлечи списъка с играчи от това изображение. За всеки ред ми дай името на играча и числото за ${statTranslations[statType]}. 
+		try {
+			const response = await openai.chat.completions.create({
+				model: "gpt-4o",
+				messages: [
+					{
+						role: "user",
+						content: [
+							{
+								type: "text",
+								text: `Моля, извлечи списъка с играчи от това изображение. За всеки ред ми дай името на играча и числото за ${statTranslations[statType]}. 
 							
-								ВАЖНО: Отговори само с извлечените данни във формат "ИМЕ_НА_ИГРАЧ ЧИСЛО", без допълнителен текст. 
-								НЕ включвай номера в класацията (като "1.", "2.", "27.") в името на играча! 
-								НЕ слагай тирета, двоеточия или други символи между името и числата.
-								НЕ добавяй никакви други символи или форматиране.
-								
-								Пример:
-								ЯкаТупалка 440890530
-								Basheff 425560925
-								(а НЕ "1. ЯкаТупалка - 440890530" или подобни формати)`,
-						},
-						{
-							type: "image_url",
-							image_url: {
-								url: `data:${mimeType};base64,${base64Image}`,
+									ВАЖНО: Отговори само с извлечените данни във формат "ИМЕ_НА_ИГРАЧ ЧИСЛО", без допълнителен текст. 
+									НЕ включвай номера в класацията (като "1.", "2.", "27.") в името на играча! 
+									НЕ слагай тирета, двоеточия или други символи между името и числата.
+									НЕ добавяй никакви други символи или форматиране.
+									
+									Пример:
+									ЯкаТупалка 440890530
+									Basheff 425560925
+									(а НЕ "1. ЯкаТупалка - 440890530" или подобни формати)`,
 							},
-						},
-					],
+							{
+								type: "image_url",
+								image_url: {
+									url: `data:${mimeType};base64,${base64Image}`,
+								},
+							},
+						],
+					},
+				],
+				max_tokens: 1000,
+			});
+
+			// Извличаме текста от отговора
+			const text = response.choices[0]?.message?.content || "";
+			console.log("Извлечен текст:", text);
+
+			// Обработваме текста, за да извлечем данните за играчите
+			const players = extractPlayersFromText(text, statType);
+
+			return NextResponse.json({ players });
+		} catch (openaiError) {
+			console.error("Грешка при изпращане на заявка към OpenAI:", openaiError);
+			return NextResponse.json(
+				{
+					message: "Грешка при анализ на изображението чрез OpenAI",
+					details:
+						openaiError instanceof Error
+							? openaiError.message
+							: String(openaiError),
 				},
-			],
-			max_tokens: 1000,
-		});
-
-		// Извличаме текста от отговора
-		const text = response.choices[0]?.message?.content || "";
-		console.log("Извлечен текст:", text);
-
-		// Обработваме текста, за да извлечем данните за играчите
-		const players = extractPlayersFromText(text, statType);
-
-		return NextResponse.json({ players });
+				{ status: 500 },
+			);
+		}
 	} catch (error) {
 		console.error("Грешка при извличане на данни:", error);
 

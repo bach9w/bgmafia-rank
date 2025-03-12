@@ -9,7 +9,17 @@ type SaveMode = "add" | "overwrite";
 export async function POST(request: NextRequest) {
 	try {
 		// Парсване на тялото на заявката
-		const body = await request.json();
+		let body;
+		try {
+			body = await request.json();
+		} catch (jsonError) {
+			console.error("Грешка при парсване на JSON заявката:", jsonError);
+			return NextResponse.json(
+				{ message: "Невалидно тяло на заявката. Очаква се JSON формат." },
+				{ status: 400 },
+			);
+		}
+
 		const { players, statType, date } = body as {
 			players: Player[];
 			statType: StatType;
@@ -291,14 +301,11 @@ export async function POST(request: NextRequest) {
 			results,
 		});
 	} catch (error) {
-		console.error("Грешка при запазване на данните:", error);
-
+		console.error("Неочаквана грешка при обработка на заявката:", error);
 		return NextResponse.json(
 			{
-				message:
-					error instanceof Error
-						? error.message
-						: "Възникна грешка при запазване на данните",
+				message: "Възникна неочаквана грешка при обработка на заявката",
+				details: error instanceof Error ? error.message : String(error),
 			},
 			{ status: 500 },
 		);

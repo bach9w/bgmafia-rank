@@ -76,18 +76,40 @@ export default function RankingsUploader() {
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(
-					errorData.message || "Грешка при обработка на изображението",
-				);
+				let errorMessage = "Грешка при обработка на изображението";
+				try {
+					const errorData = await response.json();
+					errorMessage = errorData.message || errorMessage;
+				} catch (error) {
+					// Ако отговорът не е валиден JSON, използваме текстовия отговор или стандартното съобщение
+					console.error("Грешка при парсиране на JSON отговор:", error);
+					try {
+						const errorText = await response.text();
+						errorMessage = errorText || errorMessage;
+					} catch (textError) {
+						console.error(
+							"Не можа да се прочете отговора като текст:",
+							textError,
+						);
+					}
+				}
+				throw new Error(errorMessage);
 			}
 
-			const data = await response.json();
-			setExtractedPlayers(data.players);
+			let data;
+			try {
+				data = await response.json();
+			} catch (error) {
+				console.error("Грешка при парсиране на JSON:", error);
+				throw new Error("Получени са невалидни данни от сървъра");
+			}
+
+			setExtractedPlayers(data.players || []);
 
 			// Отваряме модалния прозорец за потвърждение
 			setIsConfirmationOpen(true);
 		} catch (err) {
+			console.error("Грешка при качване:", err);
 			setError(
 				err instanceof Error ? err.message : "Възникна грешка при качването",
 			);
@@ -114,16 +136,34 @@ export default function RankingsUploader() {
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || "Грешка при запазване на данните");
+				let errorMessage = "Грешка при запазване на данните";
+				try {
+					const errorData = await response.json();
+					errorMessage = errorData.message || errorMessage;
+				} catch (error) {
+					// Ако отговорът не е валиден JSON, използваме текстовия отговор или стандартното съобщение
+					console.error("Грешка при парсиране на JSON отговор:", error);
+					try {
+						const errorText = await response.text();
+						errorMessage = errorText || errorMessage;
+					} catch (textError) {
+						console.error(
+							"Не можа да се прочете отговора като текст:",
+							textError,
+						);
+					}
+				}
+				throw new Error(errorMessage);
 			}
 
 			// След успешно запазване, нулираме състоянието
 			setSelectedFile(null);
 			setExtractedPlayers([]);
+			setIsConfirmationOpen(false);
 
 			// Тук можем да добавим допълнителна логика за показване на съобщение за успех
 		} catch (err) {
+			console.error("Грешка при запазване:", err);
 			setError(
 				err instanceof Error ? err.message : "Възникна грешка при запазването",
 			);
