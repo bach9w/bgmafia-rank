@@ -45,3 +45,4 @@ password.txt
 
 # Large binary files
 *.traineddata
+/public/uploads/
