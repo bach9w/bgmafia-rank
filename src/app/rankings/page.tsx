@@ -18,8 +18,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { StatType } from "@/components/RankingsUploader";
+import { Button } from "@/components/ui/button";
 
 // Тип за данните на играча с класацията
 type PlayerRanking = {
@@ -41,6 +42,14 @@ export default function RankingsPage() {
 	const [dates, setDates] = useState<string[]>([]);
 	const [selectedDate, setSelectedDate] = useState<string | null>(null);
 	const [sortBy, setSortBy] = useState<StatType | "total_score">("total_score");
+	const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+
+	const toggleRow = (playerId: string) => {
+		setExpandedRows((prev) => ({
+			...prev,
+			[playerId]: !prev[playerId],
+		}));
+	};
 
 	// Зареждане на наличните дати
 	useEffect(() => {
@@ -192,6 +201,13 @@ export default function RankingsPage() {
 
 	return (
 		<div className="container mx-auto py-8">
+			<Button
+				className="mb-8"
+				variant="outline"
+				onClick={() => window.history.back()}
+			>
+				Назад
+			</Button>
 			<Card className="mb-8">
 				<CardHeader>
 					<CardTitle>Класация на играчите</CardTitle>
@@ -258,50 +274,132 @@ export default function RankingsPage() {
 								Няма данни за класацията на избраната дата
 							</div>
 						) : (
-							<div className="overflow-x-auto">
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead className="w-12">№</TableHead>
-											<TableHead>Име</TableHead>
-											<TableHead className="text-right">Сила</TableHead>
-											<TableHead className="text-right">Интелект</TableHead>
-											<TableHead className="text-right">Секс</TableHead>
-											<TableHead className="text-right">Победи</TableHead>
-											<TableHead className="text-right">Опит</TableHead>
-											<TableHead className="text-right">Общо точки</TableHead>
-										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{sortedRankings.map((player, index) => (
-											<TableRow key={player.id}>
-												<TableCell>{index + 1}</TableCell>
-												<TableCell className="font-medium">
+							<>
+								{/* Мобилен изглед - само за малки екрани */}
+								<div className="md:hidden">
+									<div className="bg-gray-50 px-4 py-3 border-b border-gray-300 grid grid-cols-12 gap-2">
+										<div className="col-span-2 text-xs font-medium text-gray-500 uppercase">
+											№
+										</div>
+										<div className="col-span-7 text-xs font-medium text-gray-500 uppercase">
+											Име
+										</div>
+										<div className="col-span-3 text-xs font-medium text-gray-500 uppercase">
+											Общо
+										</div>
+									</div>
+									{sortedRankings.map((player, index) => (
+										<div key={player.id} className="border-b border-gray-200">
+											<div
+												className={`px-4 py-3 grid grid-cols-12 gap-2 items-center cursor-pointer ${
+													index % 2 === 0 ? "bg-white" : "bg-gray-50"
+												}`}
+												onClick={() => toggleRow(player.id)}
+											>
+												<div className="col-span-2 text-sm font-medium text-gray-900">
+													{index + 1}
+												</div>
+												<div className="col-span-7 text-sm text-gray-900 flex items-center">
 													{player.name}
-												</TableCell>
-												<TableCell className="text-right">
-													{player.strength.toLocaleString()}
-												</TableCell>
-												<TableCell className="text-right">
-													{player.intelligence.toLocaleString()}
-												</TableCell>
-												<TableCell className="text-right">
-													{player.sex.toLocaleString()}
-												</TableCell>
-												<TableCell className="text-right">
-													{player.victories.toLocaleString()}
-												</TableCell>
-												<TableCell className="text-right">
-													{player.experience.toLocaleString()}
-												</TableCell>
-												<TableCell className="text-right font-semibold">
+													<span className="ml-auto">
+														{expandedRows[player.id] ? (
+															<ChevronUp size={16} />
+														) : (
+															<ChevronDown size={16} />
+														)}
+													</span>
+												</div>
+												<div className="col-span-3 text-sm font-medium text-gray-900">
 													{player.total_score.toLocaleString()}
-												</TableCell>
+												</div>
+											</div>
+
+											{expandedRows[player.id] && (
+												<div className="bg-gray-50 px-4 py-3 grid grid-cols-2 gap-4 text-sm">
+													<div className="col-span-1">
+														<p className="font-medium text-gray-500">Опит:</p>
+														<p className="text-gray-900">
+															{player.experience.toLocaleString()}
+														</p>
+													</div>
+													<div className="col-span-1">
+														<p className="font-medium text-gray-500">Победи:</p>
+														<p className="text-gray-900">
+															{player.victories.toLocaleString()}
+														</p>
+													</div>
+													<div className="col-span-1">
+														<p className="font-medium text-gray-500">Сила:</p>
+														<p className="text-gray-900">
+															{player.strength.toLocaleString()}
+														</p>
+													</div>
+													<div className="col-span-1">
+														<p className="font-medium text-gray-500">
+															Интелект:
+														</p>
+														<p className="text-gray-900">
+															{player.intelligence.toLocaleString()}
+														</p>
+													</div>
+													<div className="col-span-1">
+														<p className="font-medium text-gray-500">Секс:</p>
+														<p className="text-gray-900">
+															{player.sex.toLocaleString()}
+														</p>
+													</div>
+												</div>
+											)}
+										</div>
+									))}
+								</div>
+
+								{/* Десктоп изглед - видим само на средни и големи екрани */}
+								<div className="overflow-x-auto hidden md:block">
+									<Table>
+										<TableHeader>
+											<TableRow>
+												<TableHead className="w-12">№</TableHead>
+												<TableHead>Име</TableHead>
+												<TableHead className="text-right">Сила</TableHead>
+												<TableHead className="text-right">Интелект</TableHead>
+												<TableHead className="text-right">Секс</TableHead>
+												<TableHead className="text-right">Победи</TableHead>
+												<TableHead className="text-right">Опит</TableHead>
+												<TableHead className="text-right">Общо точки</TableHead>
 											</TableRow>
-										))}
-									</TableBody>
-								</Table>
-							</div>
+										</TableHeader>
+										<TableBody>
+											{sortedRankings.map((player, index) => (
+												<TableRow key={player.id}>
+													<TableCell>{index + 1}</TableCell>
+													<TableCell className="font-medium">
+														{player.name}
+													</TableCell>
+													<TableCell className="text-right">
+														{player.strength.toLocaleString()}
+													</TableCell>
+													<TableCell className="text-right">
+														{player.intelligence.toLocaleString()}
+													</TableCell>
+													<TableCell className="text-right">
+														{player.sex.toLocaleString()}
+													</TableCell>
+													<TableCell className="text-right">
+														{player.victories.toLocaleString()}
+													</TableCell>
+													<TableCell className="text-right">
+														{player.experience.toLocaleString()}
+													</TableCell>
+													<TableCell className="text-right font-semibold">
+														{player.total_score.toLocaleString()}
+													</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</Table>
+								</div>
+							</>
 						)}
 					</div>
 				</CardContent>

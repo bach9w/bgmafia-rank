@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import { v4 as uuidv4 } from "uuid";
+// Премахваме ненужните импорти
+// import { writeFile } from "fs/promises";
+// import { join } from "path";
+// import { v4 as uuidv4 } from "uuid";
 import { Player } from "@/types/Player";
 import { StatType } from "@/components/RankingsUploader";
 
@@ -50,17 +51,15 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// Генерираме уникално име за файла
-		const fileName = `${uuidv4()}.${file.name.split(".").pop()}`;
-		const filePath = join(process.cwd(), "public", "uploads", fileName);
-
-		// Запазваме файла временно
+		// Чете файла директно в памет без да го записва на диска
 		const fileArrayBuffer = await file.arrayBuffer();
 		const fileBuffer = Buffer.from(fileArrayBuffer);
-		await writeFile(filePath, fileBuffer);
 
 		// Конвертираме файла в base64
 		const base64Image = fileBuffer.toString("base64");
+
+		// Извличаме типа на изображението за base64 кодирането
+		const mimeType = file.type;
 
 		// Изпращаме заявка към OpenAI Vision API
 		const response = await openai.chat.completions.create({
@@ -86,9 +85,7 @@ export async function POST(request: NextRequest) {
 						{
 							type: "image_url",
 							image_url: {
-								url: `data:image/${
-									file.type.split("/")[1]
-								};base64,${base64Image}`,
+								url: `data:${mimeType};base64,${base64Image}`,
 							},
 						},
 					],

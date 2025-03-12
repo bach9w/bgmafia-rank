@@ -1,4 +1,6 @@
 import RankingsUploader from "@/components/RankingsUploader";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export const metadata = {
 	title: "Качване на класация | BGMafia",
@@ -7,7 +9,7 @@ export const metadata = {
 
 export default function RankingsUploadPage() {
 	return (
-		<div className="container py-8">
+		<div className="container py-8 flex flex-col gap-4 justify-center items-center">
 			<h1 className="text-2xl font-bold mb-6">Качване на класация</h1>
 			<p className="mb-6 text-gray-600">
 				Качете изображение с класацията на играчите, за да извлечете автоматично
@@ -15,6 +17,9 @@ export default function RankingsUploadPage() {
 				и силата на играчите.
 			</p>
 			<RankingsUploader />
+			<Link href="/rankings">
+				<Button variant="outline">Назад</Button>
+			</Link>
 		</div>
 	);
 }

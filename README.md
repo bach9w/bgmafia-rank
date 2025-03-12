@@ -20,6 +20,12 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Обработка на изображения
+
+Приложението използва OpenAI GPT-4o Vision API за извличане на данни от изображения с класации. Файловете с изображения се обработват директно в паметта, без да се записват на сървъра, което подобрява сигурността и намалява използването на дисково пространство.
+
+Директорията `public/uploads` се използва само за целите на разработката и всички файлове в нея се игнорират от Git чрез `.gitignore` файл.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

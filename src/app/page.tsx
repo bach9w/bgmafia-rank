@@ -82,6 +82,8 @@ export default function Home() {
 							playerSummary.strength += Number(stat.strength || 0);
 							playerSummary.intelligence += Number(stat.intelligence || 0);
 							playerSummary.sex += Number(stat.sex || 0);
+							playerSummary.victories += Number(stat.victories || 0);
+							playerSummary.experience += Number(stat.experience || 0);
 						});
 
 						// Обновяваме общия резултат
@@ -133,7 +135,7 @@ export default function Home() {
 	}, []);
 
 	return (
-		<main className="min-h-screen p-8 bg-black ">
+		<main className="min-h-screen  bg-black ">
 			<div className="max-w-7xl mx-auto space-y-8">
 				<h1 className="text-3xl font-bold text-center mb-8 text-white">
 					Класация на Играчите
@@ -145,7 +147,7 @@ export default function Home() {
 							<h2 className="text-xl font-semibold mb-4 text-black">
 								Обща класация (сума от всички дни)
 							</h2>
-							<div className="flex gap-2">
+							<div className="flex gap-2 flex-col md:flex-row w-full items-center justify-center">
 								<Link href="/rankings">
 									<Button variant="outline">История на класациите</Button>
 								</Link>
