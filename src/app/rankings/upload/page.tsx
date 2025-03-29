@@ -17,7 +17,7 @@ export default function RankingsUploadPage() {
 				и силата на играчите.
 			</p>
 			<RankingsUploader />
-			<Link href="/rankings">
+			<Link href="/">
 				<Button variant="outline">Назад</Button>
 			</Link>
 		</div>

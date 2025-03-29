@@ -1,6 +1,7 @@
 import { PlayerRanking } from "@/types/database.types";
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 interface RankingTableProps {
 	rankings: PlayerRanking[];
@@ -36,22 +37,31 @@ export const RankingTable = ({ rankings }: RankingTableProps) => {
 						<div
 							className={`px-4 py-3 grid grid-cols-12 gap-2 items-center cursor-pointer ${
 								index % 2 === 0 ? "bg-white" : "bg-gray-50"
-							}`}
-							onClick={() => toggleRow(player.id)}
+							} hover:bg-blue-50`}
 						>
 							<div className="col-span-2 text-sm font-medium text-gray-900">
 								{index + 1}
 							</div>
-							<div className="col-span-7 text-sm text-gray-900 flex items-center">
+							<Link
+								href={`/player/${player.id}`}
+								className="col-span-7 text-sm text-gray-900 flex items-center hover:text-blue-600"
+							>
 								{player.name}
-								<span className="ml-auto">
+								<ExternalLink size={14} className="ml-1 opacity-50" />
+								<span
+									className="ml-auto"
+									onClick={(e) => {
+										e.preventDefault();
+										toggleRow(player.id);
+									}}
+								>
 									{expandedRows[player.id] ? (
 										<ChevronUp size={16} />
 									) : (
 										<ChevronDown size={16} />
 									)}
 								</span>
-							</div>
+							</Link>
 							<div className="col-span-3 text-sm font-medium text-gray-900">
 								{player.total_score.toLocaleString()}
 							</div>
@@ -123,13 +133,22 @@ export const RankingTable = ({ rankings }: RankingTableProps) => {
 					{rankings.map((player, index) => (
 						<tr
 							key={player.id}
-							className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+							className={`${
+								index % 2 === 0 ? "bg-white" : "bg-gray-50"
+							} hover:bg-blue-50 cursor-pointer`}
+							onClick={() => (window.location.href = `/player/${player.id}`)}
 						>
 							<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
 								{index + 1}
 							</td>
 							<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-								{player.name}
+								<Link
+									href={`/player/${player.id}`}
+									className="flex items-center hover:text-blue-600"
+								>
+									{player.name}
+									<ExternalLink size={14} className="ml-1 opacity-50" />
+								</Link>
 							</td>
 							<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
 								{player.experience}

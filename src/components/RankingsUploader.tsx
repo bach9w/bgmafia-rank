@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Player } from "@/types/Player";
-import { LoaderCircle } from "lucide-react";
+import {
+	LoaderCircle,
+	AlertTriangle,
+	InfoIcon,
+	CheckCircle,
+} from "lucide-react";
 import PlayerDataConfirmation from "./PlayerDataConfirmation";
 import {
 	Select,
@@ -14,6 +19,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 // Тип на показателя
 export type StatType =
@@ -26,6 +32,33 @@ export type StatType =
 // Режими на запис - изнесени в API логиката
 export type SaveMode = "add" | "overwrite";
 
+// Опции за вид на деня
+const dayTypeOptions = [
+	"Нормален ден",
+	"Ден на опита",
+	"Ден на интелекта",
+	"Ден на силата",
+	"Ден на контрабандата",
+	"Ден на фабриканта",
+	"Ден на сексапила",
+	"Ден на побой",
+];
+
+// Интерфейс за данни от проверката на датата
+interface DateCheckResult {
+	date: string;
+	hasData: boolean;
+	playersCount: number;
+	day_type: string | null;
+	stats: {
+		strength: boolean;
+		intelligence: boolean;
+		sex: boolean;
+		victories: boolean;
+		experience: boolean;
+	};
+}
+
 export default function RankingsUploader() {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
@@ -37,6 +70,9 @@ export default function RankingsUploader() {
 	const [selectedDate, setSelectedDate] = useState<string>(
 		new Date().toISOString().split("T")[0],
 	); // Формат: YYYY-MM-DD
+	const [selectedDayType, setSelectedDayType] = useState<string | null>(null);
+	const [isCheckingDate, setIsCheckingDate] = useState(false);
+	const [dateInfo, setDateInfo] = useState<DateCheckResult | null>(null);
 
 	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
@@ -53,6 +89,51 @@ export default function RankingsUploader() {
 	const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		setSelectedDate(event.target.value);
 	};
+
+	const handleDayTypeChange = (value: string) => {
+		setSelectedDayType(value);
+	};
+
+	// Проверка на датата
+	useEffect(() => {
+		const checkDate = async () => {
+			if (!selectedDate) return;
+
+			try {
+				setIsCheckingDate(true);
+
+				const response = await fetch("/api/daily-stats/check-date", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ date: selectedDate }),
+				});
+
+				if (!response.ok) {
+					throw new Error("Грешка при проверка на датата");
+				}
+
+				const data = await response.json();
+				setDateInfo(data);
+
+				// Ако има зададен вид на деня, автоматично го попълваме
+				if (data.day_type && !selectedDayType) {
+					setSelectedDayType(data.day_type);
+					toast.info("Вид на деня", {
+						description: `Автоматично попълнен вид на деня: ${data.day_type}`,
+					});
+				}
+			} catch (err) {
+				console.error("Грешка при проверка на датата:", err);
+				setDateInfo(null);
+			} finally {
+				setIsCheckingDate(false);
+			}
+		};
+
+		checkDate();
+	}, [selectedDate]);
 
 	const handleUpload = async () => {
 		if (!selectedFile) {
@@ -132,6 +213,7 @@ export default function RankingsUploader() {
 					players: confirmedPlayers,
 					statType: selectedStat,
 					date: selectedDate,
+					day_type: selectedDayType || undefined, // Добавяме вида на деня
 				}),
 			});
 
@@ -161,15 +243,58 @@ export default function RankingsUploader() {
 			setExtractedPlayers([]);
 			setIsConfirmationOpen(false);
 
-			// Тук можем да добавим допълнителна логика за показване на съобщение за успех
+			// Показваме toast съобщение за успех
+			toast.success("Класацията беше успешно качена!", {
+				description: `Данните за ${
+					confirmedPlayers.length
+				} играчи бяха записани за дата ${formatDateForDisplay(selectedDate)}`,
+			});
+
+			// Опресняваме информацията за датата
+			await checkDateInfo();
 		} catch (err) {
 			console.error("Грешка при запазване:", err);
 			setError(
 				err instanceof Error ? err.message : "Възникна грешка при запазването",
 			);
+
+			// Показваме toast съобщение за грешка
+			toast.error("Грешка при качване на класацията", {
+				description:
+					err instanceof Error ? err.message : "Възникна неочаквана грешка",
+			});
+
 			throw err; // Препрехвърляме грешката, за да я хване модалният прозорец
 		} finally {
 			setIsProcessing(false);
+		}
+	};
+
+	// Функция за проверка на информацията за датата
+	const checkDateInfo = async () => {
+		if (!selectedDate) return;
+
+		try {
+			setIsCheckingDate(true);
+
+			const response = await fetch("/api/daily-stats/check-date", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ date: selectedDate }),
+			});
+
+			if (!response.ok) {
+				throw new Error("Грешка при проверка на датата");
+			}
+
+			const data = await response.json();
+			setDateInfo(data);
+		} catch (err) {
+			console.error("Грешка при опресняване на информацията за датата:", err);
+		} finally {
+			setIsCheckingDate(false);
 		}
 	};
 
@@ -193,6 +318,12 @@ export default function RankingsUploader() {
 			month: "long",
 			year: "numeric",
 		}).format(date);
+	};
+
+	// Проверяваме дали избраният тип статистика вече съществува за тази дата
+	const isStatAlreadyExists = () => {
+		if (!dateInfo || !dateInfo.hasData) return false;
+		return dateInfo.stats[selectedStat];
 	};
 
 	return (
@@ -219,6 +350,15 @@ export default function RankingsUploader() {
 									<SelectItem value="experience">Опит</SelectItem>
 								</SelectContent>
 							</Select>
+							{isStatAlreadyExists() && (
+								<div className="flex items-center p-2 mt-1 bg-amber-50 text-amber-800 rounded-md text-sm">
+									<AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
+									<span>
+										Внимание: Вече има данни за {getStatTypeLabel(selectedStat)}{" "}
+										на тази дата!
+									</span>
+								</div>
+							)}
 						</div>
 
 						<div className="flex flex-col gap-2">
@@ -238,6 +378,101 @@ export default function RankingsUploader() {
 									Избрана дата: {formatDateForDisplay(selectedDate)}
 								</p>
 							</div>
+
+							{isCheckingDate && (
+								<div className="flex items-center p-2 bg-gray-50 text-gray-600 rounded-md text-sm">
+									<LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
+									<span>Проверка на данните за тази дата...</span>
+								</div>
+							)}
+
+							{dateInfo && dateInfo.hasData && (
+								<div className="flex items-center p-2 bg-blue-50 text-blue-800 rounded-md text-sm">
+									<InfoIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+									<div>
+										<p>
+											За тази дата вече има {dateInfo.playersCount} играчи с
+											данни.
+										</p>
+										<p className="mt-1">
+											Показатели:{" "}
+											{dateInfo.stats.strength && (
+												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+													Сила
+												</span>
+											)}
+											{dateInfo.stats.intelligence && (
+												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+													Интелект
+												</span>
+											)}
+											{dateInfo.stats.sex && (
+												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+													Секс
+												</span>
+											)}
+											{dateInfo.stats.victories && (
+												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+													Победи
+												</span>
+											)}
+											{dateInfo.stats.experience && (
+												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+													Опит
+												</span>
+											)}
+										</p>
+									</div>
+								</div>
+							)}
+						</div>
+
+						<div className="flex flex-col gap-2">
+							<label htmlFor="day-type" className="text-sm font-medium">
+								Вид на деня (незадължително)
+							</label>
+							<Select
+								value={selectedDayType || undefined}
+								onValueChange={handleDayTypeChange}
+							>
+								<SelectTrigger id="day-type" className="w-full">
+									<SelectValue placeholder="Изберете вид на деня" />
+								</SelectTrigger>
+								<SelectContent>
+									{dayTypeOptions.map((option) => (
+										<SelectItem key={option} value={option}>
+											{option}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+
+							{dateInfo && dateInfo.day_type && (
+								<div
+									className={`flex items-center p-2 mt-1 rounded-md text-sm ${
+										selectedDayType === dateInfo.day_type
+											? "bg-green-50 text-green-800"
+											: "bg-amber-50 text-amber-800"
+									}`}
+								>
+									{selectedDayType === dateInfo.day_type ? (
+										<>
+											<CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+											<span>
+												Съвпада със зададения вид на деня: {dateInfo.day_type}
+											</span>
+										</>
+									) : (
+										<>
+											<AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
+											<span>
+												Внимание: За тази дата вече е зададен вид:{" "}
+												{dateInfo.day_type}
+											</span>
+										</>
+									)}
+								</div>
+							)}
 						</div>
 
 						<div className="flex flex-col gap-2">
@@ -249,29 +484,28 @@ export default function RankingsUploader() {
 								type="file"
 								accept="image/*"
 								onChange={handleFileChange}
-								disabled={isUploading || isProcessing}
+								className="w-full"
 							/>
-							{selectedFile && (
-								<p className="text-sm text-gray-500">
-									Избран файл: {selectedFile.name}
-								</p>
-							)}
 						</div>
 
-						{error && <p className="text-sm text-red-500">{error}</p>}
+						{error && (
+							<div className="text-red-600 text-sm p-2 bg-red-50 rounded">
+								{error}
+							</div>
+						)}
 
 						<Button
 							onClick={handleUpload}
-							disabled={!selectedFile || isUploading || isProcessing}
+							disabled={isUploading || !selectedFile || isProcessing}
 							className="w-full"
 						>
 							{isUploading ? (
 								<>
 									<LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-									Качване...
+									Обработка...
 								</>
 							) : (
-								`Качи и анализирай (${getStatTypeLabel(selectedStat)})`
+								"Обработи класацията"
 							)}
 						</Button>
 					</div>

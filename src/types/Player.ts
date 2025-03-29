@@ -7,4 +7,5 @@ export interface Player {
 	victories?: number;
 	intelligence?: number;
 	sex?: number;
+	exists?: boolean;
 }

@@ -77,6 +77,13 @@
 	--sidebar-accent-foreground: oklch(0.205 0 0);
 	--sidebar-border: oklch(0.922 0 0);
 	--sidebar-ring: oklch(0.708 0 0);
+
+	/* Цветове за индикаторите на играчите */
+	--color-strength: var(--chart-1);
+	--color-intelligence: var(--chart-2);
+	--color-sex: var(--chart-3);
+	--color-victories: var(--chart-4);
+	--color-experience: var(--chart-5);
 }
 
 .dark {
@@ -112,6 +119,13 @@
 	--sidebar-accent-foreground: oklch(0.985 0 0);
 	--sidebar-border: oklch(0.269 0 0);
 	--sidebar-ring: oklch(0.439 0 0);
+
+	/* Цветове за индикаторите на играчите в тъмен режим */
+	--color-strength: var(--chart-1);
+	--color-intelligence: var(--chart-2);
+	--color-sex: var(--chart-3);
+	--color-victories: var(--chart-4);
+	--color-experience: var(--chart-5);
 }
 
 @layer base {

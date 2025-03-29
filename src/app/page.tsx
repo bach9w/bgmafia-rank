@@ -154,6 +154,9 @@ export default function Home() {
 								<Link href="/rankings/upload">
 									<Button>Добави показатели</Button>
 								</Link>
+								<Link href="/day-type">
+									<Button variant="default">Добави ден</Button>
+								</Link>
 							</div>
 						</div>
 						{isLoading ? (

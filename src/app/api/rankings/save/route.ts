@@ -20,10 +20,11 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const { players, statType, date } = body as {
+		const { players, statType, date, day_type } = body as {
 			players: Player[];
 			statType: StatType;
 			date?: string; // Датата е опционален параметър
+			day_type?: string; // Вида на деня е опционален параметър
 		};
 
 		if (!players || !Array.isArray(players) || players.length === 0) {
@@ -218,10 +219,17 @@ export async function POST(request: NextRequest) {
 					}
 					// Иначе просто презаписваме (режим "overwrite")
 
-					// Актуализираме само избрания показател
+					// Актуализираме само избрания показател и вида на деня, ако е предоставен
+					const updateData: Record<string, number | string> = {
+						[statType]: updatedValue,
+					};
+					if (day_type !== undefined) {
+						updateData.day_type = day_type;
+					}
+
 					operationResult = await supabase
 						.from("daily_stats")
-						.update({ [statType]: updatedValue })
+						.update(updateData)
 						.eq("id", statsId);
 
 					console.log(
@@ -237,6 +245,7 @@ export async function POST(request: NextRequest) {
 						victories: 0,
 						experience: 0,
 						date: currentDate, // Използваме избраната дата
+						day_type: day_type, // Добавяме вида на деня, ако е предоставен
 						...{ [statType]: statsData[statType] },
 					};
 

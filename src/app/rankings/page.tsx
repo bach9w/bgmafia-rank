@@ -33,6 +33,7 @@ type PlayerRanking = {
 	experience: number;
 	total_score: number;
 	date: string;
+	day_type?: string;
 };
 
 export default function RankingsPage() {
@@ -109,6 +110,7 @@ export default function RankingsPage() {
 						victories,
 						experience,
 						date,
+						day_type,
 						players(id, name)
 					`,
 					)
@@ -158,6 +160,7 @@ export default function RankingsPage() {
 							experience: Number(item.experience || 0),
 							total_score: totalScore,
 							date: String(item.date),
+							day_type: item.day_type || undefined,
 						});
 					}
 
@@ -211,6 +214,13 @@ export default function RankingsPage() {
 			<Card className="mb-8">
 				<CardHeader>
 					<CardTitle>Класация на играчите</CardTitle>
+					{selectedDate &&
+						sortedRankings.length > 0 &&
+						sortedRankings[0].day_type && (
+							<div className="text-sm font-medium text-amber-600 mt-2">
+								Вид на деня: {sortedRankings[0].day_type}
+							</div>
+						)}
 				</CardHeader>
 				<CardContent>
 					<div className="flex flex-col gap-6">

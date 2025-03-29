@@ -14,6 +14,7 @@ export type DailyStat = {
 	intelligence: number;
 	sex: number;
 	created_at: string;
+	day_type?: string;
 };
 
 export type PlayerRanking = {
