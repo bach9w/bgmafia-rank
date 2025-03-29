@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
 	title: "БГМАФИЯ - СТАТИСТИКА",
-	description: "ЗАШ",
+	description: "ZASH LTD",
 };
 
 export default function RootLayout({
