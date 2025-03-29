@@ -133,7 +133,7 @@ export default function RankingsUploader() {
 		};
 
 		checkDate();
-	}, [selectedDate]);
+	}, [selectedDate, selectedDayType]);
 
 	const handleUpload = async () => {
 		if (!selectedFile) {

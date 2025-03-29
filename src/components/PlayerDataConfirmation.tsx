@@ -111,7 +111,7 @@ export default function PlayerDataConfirmation({
 		};
 
 		checkPlayersExistence();
-	}, [editedPlayers.length, isOpen]);
+	}, [editedPlayers.length, isOpen, editedPlayers]);
 
 	const handlePlayerChange = (
 		index: number,

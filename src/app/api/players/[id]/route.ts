@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-export async function GET(
-	request: NextRequest,
-	{ params }: { params: { id: string } },
-) {
+type RouteParams = {
+	params: {
+		id: string;
+	};
+};
+
+export async function GET(request: NextRequest, context: RouteParams) {
 	try {
-		const { id: playerId } = await params;
+		const playerId = context.params.id;
 
 		if (!playerId) {
 			return NextResponse.json(
@@ -111,12 +114,9 @@ export async function GET(
 }
 
 // API за обновяване на данни за играч
-export async function PATCH(
-	request: NextRequest,
-	{ params }: { params: { id: string } },
-) {
+export async function PATCH(request: NextRequest, context: RouteParams) {
 	try {
-		const { id: playerId } = await params;
+		const playerId = context.params.id;
 
 		if (!playerId) {
 			return NextResponse.json(
