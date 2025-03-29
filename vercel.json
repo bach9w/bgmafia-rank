@@ -9,17 +9,16 @@
 			"maxDuration": 30
 		}
 	},
-	"routes": [
-		{
-			"src": "/api/rankings/extract",
-			"dest": "/api/rankings/extract",
-			"methods": ["POST"],
-			"headers": {
-				"Cache-Control": "no-cache, no-store, must-revalidate"
-			}
-		}
-	],
 	"headers": [
+		{
+			"source": "/api/rankings/extract",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "no-cache, no-store, must-revalidate"
+				}
+			]
+		},
 		{
 			"source": "/api/(.*)",
 			"headers": [
