@@ -7,6 +7,8 @@ import { RankingTable } from "@/components/RankingTable";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { Calendar } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 // Тип за показване на статистика с daily_stats
 type PlayerWithStats = {
@@ -19,6 +21,39 @@ export default function Home() {
 	const [rankings, setRankings] = useState<PlayerRanking[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [isSeasonStarted, setIsSeasonStarted] = useState<boolean>(false);
+	const router = useRouter();
+
+	// Функция за проверка дали сезонът е стартирал
+	const checkSeasonStatus = () => {
+		// Целевата дата за старт на сезона - утре в 19:00 часа
+		const tomorrow = new Date();
+		tomorrow.setDate(tomorrow.getDate() + 1);
+		tomorrow.setHours(19, 0, 0, 0);
+
+		const now = new Date();
+
+		// Ако текущото време е след посочената дата, сезонът е стартирал
+		setIsSeasonStarted(now >= tomorrow);
+
+		return now >= tomorrow;
+	};
+
+	// Проверяваме статуса на сезона при зареждане на компонента
+	useEffect(() => {
+		checkSeasonStatus();
+
+		// Проверяваме на всеки 60 секунди
+		const interval = setInterval(() => {
+			const isStarted = checkSeasonStatus();
+			if (isStarted) {
+				// Ако сезонът е стартирал, спираме проверката
+				clearInterval(interval);
+			}
+		}, 60000);
+
+		return () => clearInterval(interval);
+	}, []);
 
 	const fetchRankings = async () => {
 		try {
@@ -135,11 +170,27 @@ export default function Home() {
 	}, []);
 
 	return (
-		<main className="min-h-screen  bg-black ">
+		<main className="min-h-screen p-2 md:p-0 bg-black ">
 			<div className="max-w-7xl mx-auto space-y-8">
-				<h1 className="text-3xl font-bold text-center mb-8 text-white">
+				<h1 className="text-3xl font-bold text-center mb-8 text-white pt-8">
 					Класация на Играчите
 				</h1>
+
+				{!isSeasonStarted && (
+					<div className="bg-yellow-800 text-white p-6 rounded-lg mx-4 md:mx-8">
+						<div className="flex items-center mb-2">
+							<Calendar className="h-6 w-6 mr-2" />
+							<h2 className="text-xl font-bold">Нов сезон на BGMafia!</h2>
+						</div>
+						<p className="mb-2">
+							Новият сезон започва утре след 19:00 часа. Дотогава всички функции
+							за добавяне на данни са изключени.
+						</p>
+						<p className="text-yellow-300 font-semibold">
+							Очаквайте нови функционалности и подобрения в системата.
+						</p>
+					</div>
+				)}
 
 				<div className="flex flex-col gap-8 text-black">
 					<div className="">
@@ -147,16 +198,31 @@ export default function Home() {
 							<h2 className="text-xl font-semibold mb-4 text-black">
 								Обща класация (сума от всички дни)
 							</h2>
-							<div className="flex gap-2 flex-col md:flex-row w-full items-center justify-center">
-								<Link href="/rankings">
-									<Button variant="outline">История на класациите</Button>
-								</Link>
+							<div className="grid grid-cols-2 gap-2 md:flex md:flex-row  w-full items-center justify-center">
+								<Button
+									variant="destructive"
+									disabled={!isSeasonStarted}
+									className=" col-span-2"
+									onClick={() => {
+										router.push("/rankings");
+									}}
+								>
+									История на класациите
+								</Button>
+
 								<Link href="/rankings/upload">
-									<Button>Добави показатели</Button>
+									<Button disabled={!isSeasonStarted}>Добави показатели</Button>
 								</Link>
-								<Link href="/day-type">
-									<Button variant="default">Добави ден</Button>
-								</Link>
+
+								<Button
+									variant="default"
+									disabled={!isSeasonStarted}
+									onClick={() => {
+										router.push("/day-type");
+									}}
+								>
+									Добави ден
+								</Button>
 							</div>
 						</div>
 						{isLoading ? (

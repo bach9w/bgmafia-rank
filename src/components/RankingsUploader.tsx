@@ -73,6 +73,38 @@ export default function RankingsUploader() {
 	const [selectedDayType, setSelectedDayType] = useState<string | null>(null);
 	const [isCheckingDate, setIsCheckingDate] = useState(false);
 	const [dateInfo, setDateInfo] = useState<DateCheckResult | null>(null);
+	const [isSeasonStarted, setIsSeasonStarted] = useState<boolean>(false);
+
+	// Функция за проверка дали сезонът е стартирал
+	const checkSeasonStatus = () => {
+		// Целевата дата за старт на сезона - утре в 19:00 часа
+		const tomorrow = new Date();
+		tomorrow.setDate(tomorrow.getDate() + 1);
+		tomorrow.setHours(19, 0, 0, 0);
+
+		const now = new Date();
+
+		// Ако текущото време е след посочената дата, сезонът е стартирал
+		setIsSeasonStarted(now >= tomorrow);
+
+		return now >= tomorrow;
+	};
+
+	// Проверяваме статуса на сезона при зареждане на компонента и на всеки 60 секунди
+	useEffect(() => {
+		checkSeasonStatus();
+
+		// Проверяваме на всеки 60 секунди
+		const interval = setInterval(() => {
+			const isStarted = checkSeasonStatus();
+			if (isStarted) {
+				// Ако сезонът е стартирал, спираме проверката
+				clearInterval(interval);
+			}
+		}, 60000);
+
+		return () => clearInterval(interval);
+	}, []);
 
 	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
@@ -136,6 +168,14 @@ export default function RankingsUploader() {
 	}, [selectedDate, selectedDayType]);
 
 	const handleUpload = async () => {
+		// Проверка дали сезонът е стартирал
+		if (!isSeasonStarted) {
+			toast.error("Сезонът все още не е стартирал", {
+				description: "Моля, опитайте отново след началото на сезона.",
+			});
+			return;
+		}
+
 		if (!selectedFile) {
 			setError("Моля, изберете файл с класацията");
 			return;
@@ -202,6 +242,7 @@ export default function RankingsUploader() {
 	const handleConfirm = async (confirmedPlayers: Player[]) => {
 		try {
 			setIsProcessing(true);
+			setError(null);
 
 			// Запазваме потвърдените данни в базата данни
 			const response = await fetch("/api/rankings/save", {
@@ -326,13 +367,29 @@ export default function RankingsUploader() {
 		return dateInfo.stats[selectedStat];
 	};
 
+	// Проверяваме дали сезонът е стартирал и показваме съответното съобщение
+	const seasonStatusMessage = !isSeasonStarted ? (
+		<div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded">
+			<div className="flex items-center">
+				<AlertTriangle className="h-5 w-5 mr-2" />
+				<p className="font-bold">Сезонът все още не е стартирал</p>
+			</div>
+			<p className="mt-2">
+				Добавянето на показатели ще бъде активно след старта на сезона утре след
+				19:00 часа.
+			</p>
+		</div>
+	) : null;
+
 	return (
-		<>
-			<Card className="w-full max-w-2xl mx-auto">
+		<div className="w-full max-w-3xl mx-auto">
+			<Card>
 				<CardHeader>
-					<CardTitle>Качване на класация</CardTitle>
+					<CardTitle>Качване на показатели</CardTitle>
 				</CardHeader>
 				<CardContent>
+					{seasonStatusMessage}
+
 					<div className="flex flex-col gap-4">
 						<div className="flex flex-col gap-2">
 							<label htmlFor="stat-type" className="text-sm font-medium">
@@ -484,6 +541,7 @@ export default function RankingsUploader() {
 								type="file"
 								accept="image/*"
 								onChange={handleFileChange}
+								disabled={isUploading || isProcessing || !isSeasonStarted}
 								className="w-full"
 							/>
 						</div>
@@ -496,16 +554,18 @@ export default function RankingsUploader() {
 
 						<Button
 							onClick={handleUpload}
-							disabled={isUploading || !selectedFile || isProcessing}
+							disabled={
+								!selectedFile || isUploading || isProcessing || !isSeasonStarted
+							}
 							className="w-full"
 						>
-							{isUploading ? (
+							{isUploading || isProcessing ? (
 								<>
 									<LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-									Обработка...
+									{isUploading ? "Обработка..." : "Запазване..."}
 								</>
 							) : (
-								"Обработи класацията"
+								"Качи"
 							)}
 						</Button>
 					</div>
@@ -520,6 +580,6 @@ export default function RankingsUploader() {
 				statType={selectedStat}
 				selectedDate={selectedDate}
 			/>
-		</>
+		</div>
 	);
 }
