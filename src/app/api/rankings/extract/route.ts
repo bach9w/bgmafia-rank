@@ -5,7 +5,7 @@ import OpenAI from "openai";
 // import { join } from "path";
 // import { v4 as uuidv4 } from "uuid";
 import { Player } from "@/types/Player";
-import { StatType } from "@/components/RankingsUploader";
+import { StatType, RankingPart } from "@/components/RankingsUploader";
 
 // Инициализираме OpenAI клиента
 const openai = new OpenAI({
@@ -19,6 +19,12 @@ const statTranslations: Record<StatType, string> = {
 	sex: "секс",
 	victories: "победи",
 	experience: "опит",
+};
+
+// Начален номер на играча според частта на класацията
+const startingRankByPart: Record<RankingPart, number> = {
+	"1": 1, // Първа част започва от номер 1
+	"2": 31, // Втора част започва от номер 31
 };
 
 export async function POST(request: NextRequest) {
@@ -35,6 +41,7 @@ export async function POST(request: NextRequest) {
 		const formData = await request.formData();
 		const file = formData.get("file") as File;
 		const statType = (formData.get("statType") as StatType) || "strength";
+		const part = (formData.get("part") as RankingPart) || "1"; // Извличаме частта на класацията
 
 		if (!file) {
 			return NextResponse.json(
@@ -61,22 +68,28 @@ export async function POST(request: NextRequest) {
 		// Извличаме типа на изображението за base64 кодирането
 		const mimeType = file.type;
 
+		// Определяме началния номер на играча в класацията според избраната част
+		const startingRank = startingRankByPart[part];
+
 		// Изпращаме заявка към OpenAI Vision API
 		try {
 			const response = await openai.chat.completions.create({
-				model: "gpt-4o",
+				model: "gpt-4o-mini",
 				messages: [
 					{
 						role: "user",
 						content: [
 							{
 								type: "text",
-								text: `Моля, извлечи списъка с играчи от това изображение. За всеки ред ми дай името на играча и числото за ${statTranslations[statType]}. 
+								text: `Моля, извлечи списъка с играчи от това изображение.Трябва да са 30 всеки път. Прегледай детайлно класацията. За всеки ред ми дай името на играча и числото за ${statTranslations[statType]}. 
 							
 									ВАЖНО: Отговори само с извлечените данни във формат "ИМЕ_НА_ИГРАЧ ЧИСЛО", без допълнителен текст. 
-									НЕ включвай номера в класацията (като "1.", "2.", "27.") в името на играча! 
+									Започвай винаги от първото име в класацията.
+									
 									НЕ слагай тирета, двоеточия или други символи между името и числата.
 									НЕ добавяй никакви други символи или форматиране.
+									
+									Класацията започва от позиция ${startingRank}.
 									
 									Пример:
 									ЯкаТупалка 440890530
@@ -100,7 +113,7 @@ export async function POST(request: NextRequest) {
 			console.log("Извлечен текст:", text);
 
 			// Обработваме текста, за да извлечем данните за играчите
-			const players = extractPlayersFromText(text, statType);
+			const players = extractPlayersFromText(text, statType, startingRank);
 
 			return NextResponse.json({ players });
 		} catch (openaiError) {
@@ -139,9 +152,14 @@ function cleanPlayerName(name: string): string {
 	return name;
 }
 
-function extractPlayersFromText(text: string, statType: StatType): Player[] {
+function extractPlayersFromText(
+	text: string,
+	statType: StatType,
+	startingRank: number = 1,
+): Player[] {
 	const lines = text.split("\n").filter((line) => line.trim());
 	const players: Player[] = [];
+	let currentRank = startingRank;
 
 	for (const line of lines) {
 		// Пропускаме празни редове
@@ -191,6 +209,7 @@ function extractPlayersFromText(text: string, statType: StatType): Player[] {
 					name: cleanedName,
 					strength: 0,
 					gang: "",
+					rank: currentRank, // Записваме ранг на играча в класацията
 				};
 
 				// Задаваме стойност на избрания показател
@@ -199,9 +218,11 @@ function extractPlayersFromText(text: string, statType: StatType): Player[] {
 				console.log("Извлечени данни:", {
 					name: cleanedName,
 					[statType]: statValue,
+					rank: currentRank,
 				});
 
 				players.push(player);
+				currentRank++; // Увеличаваме ранга за следващия играч
 			}
 		}
 	}

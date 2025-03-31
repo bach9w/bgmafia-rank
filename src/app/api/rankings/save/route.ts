@@ -53,39 +53,104 @@ export async function POST(request: NextRequest) {
 		for (const player of players) {
 			try {
 				// Първо проверяваме дали играчът съществува
-				const { data: existingPlayers, error: findError } = await supabase
-					.from("players")
-					.select("id")
-					.eq("name", player.name);
+				// Използваме profileId като основен идентификатор, ако е наличен
+				let existingPlayerId;
 
-				if (findError) {
-					console.error(
-						`Грешка при търсене на играч ${player.name}:`,
-						findError,
-					);
+				if (player.profileId) {
+					// Търсим по profileId
+					const { data: playersByProfileId, error: profileIdError } =
+						await supabase
+							.from("players")
+							.select("id")
+							.eq("profile_id", player.profileId);
 
-					results.push({
-						name: player.name,
-						success: false,
-						error: findError.message,
-					});
+					if (profileIdError) {
+						console.error(
+							`Грешка при търсене на играч по profile_id ${player.profileId}:`,
+							profileIdError,
+						);
+					} else if (playersByProfileId && playersByProfileId.length > 0) {
+						existingPlayerId = playersByProfileId[0].id;
+						console.log(
+							`Намерен съществуващ играч с profile_id ${player.profileId}, ID: ${existingPlayerId}`,
+						);
+					}
+				}
 
-					continue;
+				// Ако не намерим по profileId, търсим по име
+				if (!existingPlayerId) {
+					const { data: existingPlayers, error: findError } = await supabase
+						.from("players")
+						.select("id")
+						.eq("name", player.name);
+
+					if (findError) {
+						console.error(
+							`Грешка при търсене на играч ${player.name}:`,
+							findError,
+						);
+
+						results.push({
+							name: player.name,
+							success: false,
+							error: findError.message,
+						});
+
+						continue;
+					}
+
+					if (existingPlayers && existingPlayers.length > 0) {
+						// Играчът съществува, използваме неговото ID
+						existingPlayerId = existingPlayers[0].id;
+						console.log(
+							`Намерен съществуващ играч ${player.name} с ID: ${existingPlayerId}`,
+						);
+					}
 				}
 
 				let playerId;
 
-				if (existingPlayers && existingPlayers.length > 0) {
+				if (existingPlayerId) {
 					// Играчът съществува, използваме неговото ID
-					playerId = existingPlayers[0].id;
-					console.log(
-						`Намерен съществуващ играч ${player.name} с ID: ${playerId}`,
-					);
+					playerId = existingPlayerId;
+
+					// Актуализираме profile_id ако е наличен и не е записан
+					if (player.profileId) {
+						const { data: existingProfile, error: profileError } =
+							await supabase
+								.from("players")
+								.select("profile_id")
+								.eq("id", playerId)
+								.single();
+
+						if (
+							!profileError &&
+							(!existingProfile.profile_id ||
+								existingProfile.profile_id !== player.profileId)
+						) {
+							// Актуализираме profile_id на играча
+							await supabase
+								.from("players")
+								.update({ profile_id: player.profileId })
+								.eq("id", playerId);
+
+							console.log(
+								`Актуализиран profile_id на играч ${player.name} от ${
+									existingProfile.profile_id || "няма"
+								} на ${player.profileId}`,
+							);
+						}
+					}
 				} else {
 					// Играчът не съществува, създаваме нов
+					const playerData = {
+						name: player.name,
+						profile_id: player.profileId,
+					};
+
 					const { data: newPlayer, error: createError } = await supabase
 						.from("players")
-						.insert({ name: player.name })
+						.insert(playerData)
 						.select()
 						.single();
 

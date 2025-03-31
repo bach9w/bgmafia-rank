@@ -19,9 +19,10 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, ExternalLink } from "lucide-react";
 import { StatType } from "./RankingsUploader";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 interface PlayerDataConfirmationProps {
 	isOpen: boolean;
@@ -51,7 +52,7 @@ export default function PlayerDataConfirmation({
 		console.log("Получени играчи в модала:", players);
 	}, [players]);
 
-	// Проверка дали играчите съществуват в базата данни
+	// Проверка дали играчите съществуват в базата данни - оптимизирана версия
 	useEffect(() => {
 		const checkPlayersExistence = async () => {
 			if (!editedPlayers.length || !isOpen) return;
@@ -61,6 +62,18 @@ export default function PlayerDataConfirmation({
 
 				// Извличаме имената на играчите
 				const playerNames = editedPlayers.map((player) => player.name);
+
+				// Проверка дали вече имаме информацията за съществуването
+				// Ако някой от играчите вече има exists свойство, пропускаме проверката
+				if (editedPlayers.some((player) => player.exists !== undefined)) {
+					console.log(
+						"Пропускане на повторна проверка - играчите вече са проверени",
+					);
+					setIsCheckingPlayers(false);
+					return;
+				}
+
+				console.log(`Проверка на ${playerNames.length} играчи`);
 
 				// Правим заявка към API
 				const response = await fetch("/api/players/check", {
@@ -111,7 +124,7 @@ export default function PlayerDataConfirmation({
 		};
 
 		checkPlayersExistence();
-	}, [editedPlayers.length, isOpen, editedPlayers]);
+	}, [isOpen, players]); // Премахваме editedPlayers от зависимостите, за да избегнем цикличност
 
 	const handlePlayerChange = (
 		index: number,
@@ -173,6 +186,13 @@ export default function PlayerDataConfirmation({
 			: "border-red-500 border-2";
 	};
 
+	// Функция за изтриване на играч от списъка
+	const handleDeletePlayer = (index: number) => {
+		const updatedPlayers = [...editedPlayers];
+		updatedPlayers.splice(index, 1);
+		setEditedPlayers(updatedPlayers);
+	};
+
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
 			<DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -205,19 +225,29 @@ export default function PlayerDataConfirmation({
 								<div className="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
 								<span>Нов играч</span>
 							</div>
+
+							<div className="flex items-center ml-auto">
+								<div className="text-sm text-gray-500">
+									{editedPlayers.length} играчи общо
+								</div>
+							</div>
 						</div>
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>№</TableHead>
+									<TableHead className="w-12">№</TableHead>
+									<TableHead className="w-16">Ранг</TableHead>
 									<TableHead>Име</TableHead>
+									<TableHead className="w-20">ID</TableHead>
 									<TableHead>{getStatTypeLabel(statType)}</TableHead>
+									<TableHead className="w-20">Действия</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
 								{editedPlayers.map((player, index) => (
 									<TableRow key={index} className={getBorderClass(player)}>
 										<TableCell>{index + 1}</TableCell>
+										<TableCell>{player.rank || "-"}</TableCell>
 										<TableCell>
 											<Input
 												value={player.name}
@@ -226,6 +256,27 @@ export default function PlayerDataConfirmation({
 												}
 												className="w-full"
 											/>
+										</TableCell>
+										<TableCell>
+											{player.profileId ? (
+												<div className="flex items-center gap-1">
+													<Badge variant="outline" className="text-xs">
+														{player.profileId}
+													</Badge>
+													{player.profileUrl && (
+														<a
+															href={`https://bgmafia.com${player.profileUrl}`}
+															target="_blank"
+															rel="noopener noreferrer"
+															className="text-blue-600 hover:text-blue-800"
+														>
+															<ExternalLink className="h-3 w-3" />
+														</a>
+													)}
+												</div>
+											) : (
+												<span className="text-gray-400">няма ID</span>
+											)}
 										</TableCell>
 										<TableCell>
 											<Input
@@ -240,6 +291,16 @@ export default function PlayerDataConfirmation({
 												}
 												className="w-full"
 											/>
+										</TableCell>
+										<TableCell>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={() => handleDeletePlayer(index)}
+												className="hover:bg-red-100 hover:text-red-600 p-1 h-7"
+											>
+												Изтрий
+											</Button>
 										</TableCell>
 									</TableRow>
 								))}

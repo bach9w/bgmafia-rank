@@ -10,6 +10,7 @@ import {
 	AlertTriangle,
 	InfoIcon,
 	CheckCircle,
+	FileText,
 } from "lucide-react";
 import PlayerDataConfirmation from "./PlayerDataConfirmation";
 import {
@@ -20,6 +21,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import HtmlTableImporter from "./HtmlTableImporter";
 
 // Тип на показателя
 export type StatType =
@@ -43,6 +45,9 @@ const dayTypeOptions = [
 	"Ден на сексапила",
 	"Ден на побой",
 ];
+
+// Тип за част от класацията
+export type RankingPart = "1" | "2";
 
 // Интерфейс за данни от проверката на датата
 interface DateCheckResult {
@@ -73,38 +78,8 @@ export default function RankingsUploader() {
 	const [selectedDayType, setSelectedDayType] = useState<string | null>(null);
 	const [isCheckingDate, setIsCheckingDate] = useState(false);
 	const [dateInfo, setDateInfo] = useState<DateCheckResult | null>(null);
-	const [isSeasonStarted, setIsSeasonStarted] = useState<boolean>(false);
-
-	// Функция за проверка дали сезонът е стартирал
-	const checkSeasonStatus = () => {
-		// Целевата дата за старт на сезона - утре в 19:00 часа
-		const tomorrow = new Date();
-		tomorrow.setDate(tomorrow.getDate() + 1);
-		tomorrow.setHours(19, 0, 0, 0);
-
-		const now = new Date();
-
-		// Ако текущото време е след посочената дата, сезонът е стартирал
-		setIsSeasonStarted(now >= tomorrow);
-
-		return now >= tomorrow;
-	};
-
-	// Проверяваме статуса на сезона при зареждане на компонента и на всеки 60 секунди
-	useEffect(() => {
-		checkSeasonStatus();
-
-		// Проверяваме на всеки 60 секунди
-		const interval = setInterval(() => {
-			const isStarted = checkSeasonStatus();
-			if (isStarted) {
-				// Ако сезонът е стартирал, спираме проверката
-				clearInterval(interval);
-			}
-		}, 60000);
-
-		return () => clearInterval(interval);
-	}, []);
+	const [selectedPart, setSelectedPart] = useState<RankingPart>("1"); // Ново състояние за частта
+	const [uploadMode, setUploadMode] = useState<"image" | "html">("image");
 
 	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
@@ -124,6 +99,10 @@ export default function RankingsUploader() {
 
 	const handleDayTypeChange = (value: string) => {
 		setSelectedDayType(value);
+	};
+
+	const handlePartChange = (value: string) => {
+		setSelectedPart(value as RankingPart);
 	};
 
 	// Проверка на датата
@@ -168,15 +147,7 @@ export default function RankingsUploader() {
 	}, [selectedDate, selectedDayType]);
 
 	const handleUpload = async () => {
-		// Проверка дали сезонът е стартирал
-		if (!isSeasonStarted) {
-			toast.error("Сезонът все още не е стартирал", {
-				description: "Моля, опитайте отново след началото на сезона.",
-			});
-			return;
-		}
-
-		if (!selectedFile) {
+		if (!selectedFile && uploadMode === "image") {
 			setError("Моля, изберете файл с класацията");
 			return;
 		}
@@ -185,50 +156,53 @@ export default function RankingsUploader() {
 			setIsUploading(true);
 			setError(null);
 
-			// Създаваме FormData за качване на файла
-			const formData = new FormData();
-			formData.append("file", selectedFile);
-			formData.append("statType", selectedStat);
+			if (uploadMode === "image") {
+				// Създаваме FormData за качване на файла
+				const formData = new FormData();
+				formData.append("file", selectedFile!);
+				formData.append("statType", selectedStat);
+				formData.append("part", selectedPart); // Добавяме избраната част
 
-			// Изпращаме файла към нашия API endpoint
-			const response = await fetch("/api/rankings/extract", {
-				method: "POST",
-				body: formData,
-			});
+				// Изпращаме файла към нашия API endpoint
+				const response = await fetch("/api/rankings/extract", {
+					method: "POST",
+					body: formData,
+				});
 
-			if (!response.ok) {
-				let errorMessage = "Грешка при обработка на изображението";
-				try {
-					const errorData = await response.json();
-					errorMessage = errorData.message || errorMessage;
-				} catch (error) {
-					// Ако отговорът не е валиден JSON, използваме текстовия отговор или стандартното съобщение
-					console.error("Грешка при парсиране на JSON отговор:", error);
+				if (!response.ok) {
+					let errorMessage = "Грешка при обработка на изображението";
 					try {
-						const errorText = await response.text();
-						errorMessage = errorText || errorMessage;
-					} catch (textError) {
-						console.error(
-							"Не можа да се прочете отговора като текст:",
-							textError,
-						);
+						const errorData = await response.json();
+						errorMessage = errorData.message || errorMessage;
+					} catch (error) {
+						// Ако отговорът не е валиден JSON, използваме текстовия отговор или стандартното съобщение
+						console.error("Грешка при парсиране на JSON отговор:", error);
+						try {
+							const errorText = await response.text();
+							errorMessage = errorText || errorMessage;
+						} catch (textError) {
+							console.error(
+								"Не можа да се прочете отговора като текст:",
+								textError,
+							);
+						}
 					}
+					throw new Error(errorMessage);
 				}
-				throw new Error(errorMessage);
+
+				let data;
+				try {
+					data = await response.json();
+				} catch (error) {
+					console.error("Грешка при парсиране на JSON:", error);
+					throw new Error("Получени са невалидни данни от сървъра");
+				}
+
+				setExtractedPlayers(data.players || []);
+
+				// Отваряме модалния прозорец за потвърждение
+				setIsConfirmationOpen(true);
 			}
-
-			let data;
-			try {
-				data = await response.json();
-			} catch (error) {
-				console.error("Грешка при парсиране на JSON:", error);
-				throw new Error("Получени са невалидни данни от сървъра");
-			}
-
-			setExtractedPlayers(data.players || []);
-
-			// Отваряме модалния прозорец за потвърждение
-			setIsConfirmationOpen(true);
 		} catch (err) {
 			console.error("Грешка при качване:", err);
 			setError(
@@ -367,19 +341,11 @@ export default function RankingsUploader() {
 		return dateInfo.stats[selectedStat];
 	};
 
-	// Проверяваме дали сезонът е стартирал и показваме съответното съобщение
-	const seasonStatusMessage = !isSeasonStarted ? (
-		<div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded">
-			<div className="flex items-center">
-				<AlertTriangle className="h-5 w-5 mr-2" />
-				<p className="font-bold">Сезонът все още не е стартирал</p>
-			</div>
-			<p className="mt-2">
-				Добавянето на показатели ще бъде активно след старта на сезона утре след
-				19:00 часа.
-			</p>
-		</div>
-	) : null;
+	// Функция за обработка на данни от HTML таблицата
+	const handleHtmlImport = (players: Player[]) => {
+		setExtractedPlayers(players);
+		setIsConfirmationOpen(true);
+	};
 
 	return (
 		<div className="w-full max-w-3xl mx-auto">
@@ -388,8 +354,6 @@ export default function RankingsUploader() {
 					<CardTitle>Качване на показатели</CardTitle>
 				</CardHeader>
 				<CardContent>
-					{seasonStatusMessage}
-
 					<div className="flex flex-col gap-4">
 						<div className="flex flex-col gap-2">
 							<label htmlFor="stat-type" className="text-sm font-medium">
@@ -533,41 +497,92 @@ export default function RankingsUploader() {
 						</div>
 
 						<div className="flex flex-col gap-2">
-							<label htmlFor="file-upload" className="text-sm font-medium">
-								Изберете изображение с класацията
+							<label className="text-sm font-medium">
+								Изберете метод за въвеждане
 							</label>
-							<Input
-								id="file-upload"
-								type="file"
-								accept="image/*"
-								onChange={handleFileChange}
-								disabled={isUploading || isProcessing || !isSeasonStarted}
-								className="w-full"
-							/>
+							<div className="flex gap-2">
+								<Button
+									variant={uploadMode === "image" ? "default" : "outline"}
+									onClick={() => setUploadMode("image")}
+									type="button"
+									className="flex-1"
+								>
+									<LoaderCircle className="mr-2 h-4 w-4" />
+									Качване на изображение
+								</Button>
+								<Button
+									variant={uploadMode === "html" ? "default" : "outline"}
+									onClick={() => setUploadMode("html")}
+									type="button"
+									className="flex-1"
+								>
+									<FileText className="mr-2 h-4 w-4" />
+									Импортиране от HTML
+								</Button>
+							</div>
 						</div>
 
-						{error && (
-							<div className="text-red-600 text-sm p-2 bg-red-50 rounded">
-								{error}
-							</div>
-						)}
+						{uploadMode === "image" ? (
+							<>
+								<div className="flex flex-col gap-2">
+									<label htmlFor="ranking-part" className="text-sm font-medium">
+										Част на класацията
+									</label>
+									<Select value={selectedPart} onValueChange={handlePartChange}>
+										<SelectTrigger id="ranking-part" className="w-full">
+											<SelectValue placeholder="Изберете част" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="1">Част 1 (Започва от 1)</SelectItem>
+											<SelectItem value="2">Част 2 (Започва от 31)</SelectItem>
+										</SelectContent>
+									</Select>
+									<p className="text-sm text-gray-500">
+										Използвайте, ако класацията е разделена на няколко снимки.
+									</p>
+								</div>
 
-						<Button
-							onClick={handleUpload}
-							disabled={
-								!selectedFile || isUploading || isProcessing || !isSeasonStarted
-							}
-							className="w-full"
-						>
-							{isUploading || isProcessing ? (
-								<>
-									<LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-									{isUploading ? "Обработка..." : "Запазване..."}
-								</>
-							) : (
-								"Качи"
-							)}
-						</Button>
+								<div className="flex flex-col gap-2">
+									<label htmlFor="file-upload" className="text-sm font-medium">
+										Изберете изображение с класацията
+									</label>
+									<Input
+										id="file-upload"
+										type="file"
+										accept="image/*"
+										onChange={handleFileChange}
+										disabled={isUploading || isProcessing}
+										className="w-full"
+									/>
+								</div>
+
+								{error && (
+									<div className="text-red-600 text-sm p-2 bg-red-50 rounded">
+										{error}
+									</div>
+								)}
+
+								<Button
+									onClick={handleUpload}
+									disabled={!selectedFile || isUploading || isProcessing}
+									className="w-full"
+								>
+									{isUploading || isProcessing ? (
+										<>
+											<LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+											{isUploading ? "Обработка..." : "Запазване..."}
+										</>
+									) : (
+										"Качи изображение"
+									)}
+								</Button>
+							</>
+						) : (
+							<HtmlTableImporter
+								onImport={handleHtmlImport}
+								statType={selectedStat}
+							/>
+						)}
 					</div>
 				</CardContent>
 			</Card>

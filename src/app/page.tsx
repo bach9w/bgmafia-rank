@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PlayerRanking, DailyStat } from "@/types/database.types";
+import { DailyStat } from "@/types/database.types";
 import { RankingTable } from "@/components/RankingTable";
 
 import { supabase } from "@/lib/supabase";
@@ -17,6 +17,20 @@ type PlayerWithStats = {
 	daily_stats: DailyStat[];
 };
 
+type PlayerRanking = {
+	id: string;
+	name: string;
+	strength: number;
+	intelligence: number;
+	sex: number;
+	victories: number;
+	experience: number;
+	total_score: number;
+	attack: number; // Атака = (Сила * 0.45 + Интелект * 0.55)
+	respect: number; // Респект = (Атака * 0.85 + Сексапил * 0.15)
+	date: string;
+};
+
 export default function Home() {
 	const [rankings, setRankings] = useState<PlayerRanking[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -27,16 +41,16 @@ export default function Home() {
 	// Функция за проверка дали сезонът е стартирал
 	const checkSeasonStatus = () => {
 		// Целевата дата за старт на сезона - утре в 19:00 часа
-		const tomorrow = new Date();
-		tomorrow.setDate(tomorrow.getDate() + 1);
-		tomorrow.setHours(19, 0, 0, 0);
+		const start = new Date("2025-03-31T19:00:00");
+		start.setDate(start.getDate() + 1);
+		start.setHours(19, 0, 0, 0);
 
 		const now = new Date();
 
 		// Ако текущото време е след посочената дата, сезонът е стартирал
-		setIsSeasonStarted(now >= tomorrow);
+		setIsSeasonStarted(now >= start);
 
-		return now >= tomorrow;
+		return now >= start;
 	};
 
 	// Проверяваме статуса на сезона при зареждане на компонента
@@ -107,6 +121,8 @@ export default function Home() {
 								victories: 0,
 								experience: 0,
 								total_score: 0,
+								attack: 0,
+								respect: 0,
 								date: new Date().toISOString().split("T")[0], // Текуща дата
 							});
 						}
@@ -121,11 +137,18 @@ export default function Home() {
 							playerSummary.experience += Number(stat.experience || 0);
 						});
 
-						// Обновяваме общия резултат
-						playerSummary.total_score =
-							playerSummary.strength +
-							playerSummary.intelligence +
-							playerSummary.sex;
+						// Изчисляваме атака и респект по точните формули
+						playerSummary.attack = Math.round(
+							playerSummary.strength * 0.33 + playerSummary.intelligence * 0.55,
+						);
+
+						playerSummary.respect = Math.round(
+							playerSummary.strength * 0.42 +
+								playerSummary.sex * 0.42 +
+								playerSummary.intelligence * 0.42,
+						);
+
+						playerSummary.total_score = playerSummary.respect;
 
 						// Съхраняваме обратно в Map-а
 						playerMap.set(playerId, playerSummary);
@@ -176,7 +199,7 @@ export default function Home() {
 					Класация на Играчите
 				</h1>
 
-				{!isSeasonStarted && (
+				{isSeasonStarted && (
 					<div className="bg-yellow-800 text-white p-6 rounded-lg mx-4 md:mx-8">
 						<div className="flex items-center mb-2">
 							<Calendar className="h-6 w-6 mr-2" />
@@ -201,7 +224,6 @@ export default function Home() {
 							<div className="grid grid-cols-2 gap-2 md:flex md:flex-row  w-full items-center justify-center">
 								<Button
 									variant="destructive"
-									disabled={!isSeasonStarted}
 									className=" col-span-2"
 									onClick={() => {
 										router.push("/rankings");
