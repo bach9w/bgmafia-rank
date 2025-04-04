@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ScrapeButton } from "@/components/ScrapeButton";
 
 // Тип за показване на статистика с daily_stats
 type PlayerWithStats = {
@@ -260,6 +261,7 @@ export default function Home() {
 						)}
 					</div>
 				</div>
+				<ScrapeButton />
 			</div>
 		</main>
 	);

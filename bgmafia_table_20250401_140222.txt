@@ -1,0 +1,188 @@
+<table class="default">
+<tr>
+<th>#</th>
+<th>Гангстер</th>
+<th>Спечелен опит</th>
+<th>Банда</th>
+</tr>
+<tr>
+<td class="r">1.</td>
+<td><a class="vip-on utt" href="/map/2698?z=7Ab" title="u:VIP Гангстер:2698:bg:9681k:493:84">Alibaba</a></td>
+<td class="r">30 759 374</td>
+<td><a class="gang" href="/gang/2?z=7Ab" title="g:2:78M:11:3:12">DreamTeam</a></td>
+</tr>
+<tr>
+<td class="r">2.</td>
+<td><a class="vip-on utt" href="/map/3141?z=7Ab" title="u:VIP Гангстер:0:bg:9152k:445:86">Залеза</a></td>
+<td class="r">26 537 768</td>
+<td><a class="gang" href="/gang/6?z=7Ab" title="g:0:67M:6:0:12">BROTHERS</a></td>
+</tr>
+<tr>
+<td class="r">3.</td>
+<td><a class="vip-on utt" href="/map/213?z=7Ab" title="u:VIP Гангстер:213:bg:9953k:480:87">TON-618</a></td>
+<td class="r">25 046 992</td>
+<td><a class="gang" href="/gang/5?z=7Ab" title="g:0:67M:11:2:11">ФеновеНаМаргето</a></td>
+</tr>
+<tr>
+<td class="r">4.</td>
+<td><a class="vip-of utt" href="/map/1002?z=7Ab" title="u:VIP Гангстер:0:bg:8436k:469:108">Gaikata</a></td>
+<td class="r">24 297 060</td>
+<td><a class="gang" href="/gang/4?z=7Ab" title="g:0:85M:12:0:11">Okmsnp</a></td>
+</tr>
+<tr>
+<td class="r">5.</td>
+<td><a class="vip-on utt" href="/map/1401?z=7Ab" title="u:VIP Гангстер:0:bg:7104k:425:145">3aлеза</a></td>
+<td class="r">24 301 831</td>
+<td><a class="gang" href="/gang/6?z=7Ab" title="g:0:67M:6:0:12">BROTHERS</a></td>
+</tr>
+<tr>
+<td class="r">6.</td>
+<td><a class="vip-on utt" href="/map/3193?z=7Ab" title="u:VIP Гангстер:-43:bg:8491k:483:109">弱いもの</a></td>
+<td class="r">23 965 709</td>
+<td><a class="gang" href="/gang/5?z=7Ab" title="g:0:67M:11:2:11">ФеновеНаМаргето</a></td>
+</tr>
+<tr>
+<td class="r">7.</td>
+<td><a class="vip-of utt" href="/map/28?z=7Ab" title="u:VIP Гангстер:-34:bg:8531k:378:93">ЧичкоПаричко</a></td>
+<td class="r">22 835 613</td>
+<td><a class="gang" href="/gang/3?z=7Ab" title="g:0:55M:8:5:12">МоятаПърваБанда</a></td>
+</tr>
+<tr>
+<td class="r">8.</td>
+<td><a class="vip-on utt" href="/map/77?z=7Ab" title="u:VIP Гангстер:77:bg:7477k:467:135">Веселякът</a></td>
+<td class="r">22 527 446</td>
+<td><a class="gang" href="/gang/6?z=7Ab" title="g:0:67M:6:0:12">BROTHERS</a></td>
+</tr>
+<tr>
+<td class="r">9.</td>
+<td><a class="vip-on utt" href="/map/1694?z=7Ab" title="u:VIP Гангстер:-52:bg:9149k:410:128">азсъм</a></td>
+<td class="r">21 837 459</td>
+<td><a class="gang" href="/gang/4?z=7Ab" title="g:0:85M:12:0:11">Okmsnp</a></td>
+</tr>
+<tr>
+<td class="r">10.</td>
+<td><a class="vip-on utt" href="/map/2708?z=7Ab" title="u:VIP Гангстер:2708:bg:8913k:393:139">UNSTOPPABLE-</a></td>
+<td class="r">21 447 884</td>
+<td><a class="gang" href="/gang/4?z=7Ab" title="g:0:85M:12:0:11">Okmsnp</a></td>
+</tr>
+<tr>
+<td class="r">11.</td>
+<td><a class="vip-on utt" href="/map/290?z=7Ab" title="u:VIP Гангстер:0:bg:7974k:393:132">3алeза</a></td>
+<td class="r">21 738 444</td>
+<td><a class="gang" href="/gang/6?z=7Ab" title="g:0:67M:6:0:12">BROTHERS</a></td>
+</tr>
+<tr>
+<td class="r">12.</td>
+<td><a class="vip-on utt" href="/map/66?z=7Ab" title="u:VIP Гангстер:-60:bg:6907k:401:138">Грешника</a></td>
+<td class="r">21 072 006</td>
+<td><a class="gang" href="/gang/3?z=7Ab" title="g:0:55M:8:5:12">МоятаПърваБанда</a></td>
+</tr>
+<tr>
+<td class="r">13.</td>
+<td><a class="vip-on utt" href="/map/1574?z=7Ab" title="u:VIP Гангстер:-9:bg:6994k:404:133">zw0lle</a></td>
+<td class="r">21 059 841</td>
+<td><a class="gang" href="/gang/2?z=7Ab" title="g:2:78M:11:3:12">DreamTeam</a></td>
+</tr>
+<tr>
+<td class="r">14.</td>
+<td><a class="vip-on utt" href="/map/3205?z=7Ab" title="u:VIP Гангстер:-19:bg:8930k:483:97">DerSankt</a></td>
+<td class="r">20 355 108</td>
+<td><a class="gang" href="/gang/2?z=7Ab" title="g:2:78M:11:3:12">DreamTeam</a></td>
+</tr>
+<tr>
+<td class="r">15.</td>
+<td><a class="vip-on utt" href="/map/3186?z=7Ab" title="u:VIP Гангстер:0:bg:9308k:336:93">Залезa</a></td>
+<td class="r">19 937 066</td>
+<td><a class="gang" href="/gang/6?z=7Ab" title="g:0:67M:6:0:12">BROTHERS</a></td>
+</tr>
+<tr>
+<td class="r">16.</td>
+<td><a class="vip-of utt" href="/map/524?z=7Ab" title="u:VIP Гангстер:0:bg:12M:360:116">ПравяТиКлизма</a></td>
+<td class="r">19 379 186</td>
+<td><a class="gang" href="/gang/4?z=7Ab" title="g:0:85M:12:0:11">Okmsnp</a></td>
+</tr>
+<tr>
+<td class="r">17.</td>
+<td><a class="fvip-on utt" href="/map/306?z=7Ab" title="u:VIP Мафиотка:-57:bg:8052k:376:133">МарияМед</a></td>
+<td class="r">19 281 790</td>
+<td><a class="gang" href="/gang/2?z=7Ab" title="g:2:78M:11:3:12">DreamTeam</a></td>
+</tr>
+<tr>
+<td class="r">18.</td>
+<td><a class="vip-of utt" href="/map/1938?z=7Ab" title="u:VIP Гангстер:1938:bg:5143k:386:187">mаshin</a></td>
+<td class="r">19 091 409</td>
+<td><a class="gang" href="/gang/4?z=7Ab" title="g:0:85M:12:0:11">Okmsnp</a></td>
+</tr>
+<tr>
+<td class="r">19.</td>
+<td><a class="vip-of utt" href="/map/3214?z=7Ab" title="u:VIP Гангстер:0:bg:7438k:300:240">Вулкан</a></td>
+<td class="r">18 140 531</td>
+<td><a class="gang" href="/gang/2?z=7Ab" title="g:2:78M:11:3:12">DreamTeam</a></td>
+</tr>
+<tr>
+<td class="r">20.</td>
+<td><a class="vip-on utt" href="/map/986?z=7Ab" title="u:VIP Гангстер:986:bg:10M:424:61">Химика</a></td>
+<td class="r">18 121 455</td>
+<td><a class="gang" href="/gang/4?z=7Ab" title="g:0:85M:12:0:11">Okmsnp</a></td>
+</tr>
+<tr>
+<td class="r">21.</td>
+<td><a class="vip-on utt" href="/map/3187?z=7Ab" title="u:VIP Гангстер:0:bg:5791k:392:175">Зaлеза</a></td>
+<td class="r">18 358 383</td>
+<td><a class="gang" href="/gang/6?z=7Ab" title="g:0:67M:6:0:12">BROTHERS</a></td>
+</tr>
+<tr>
+<td class="r">22.</td>
+<td><a class="vip-of utt" href="/map/229?z=7Ab" title="u:VIP Гангстер:-9:bg:6371k:345:99">Dark_Devil21</a></td>
+<td class="r">17 901 714</td>
+<td><span class="gang-no"> - </span></td>
+</tr>
+<tr>
+<td class="r">23.</td>
+<td><a class="vip-on utt" href="/map/2437?z=7Ab" title="u:VIP Гангстер:-44:bg:5810k:377:123">xayxay</a></td>
+<td class="r">17 863 217</td>
+<td><span class="gang-no"> - </span></td>
+</tr>
+<tr>
+<td class="r">24.</td>
+<td><a class="vip-on utt" href="/map/1590?z=7Ab" title="u:VIP Гангстер:0:bg:6200k:376:117">Залeза</a></td>
+<td class="r">17 961 475</td>
+<td><a class="gang" href="/gang/6?z=7Ab" title="g:0:67M:6:0:12">BROTHERS</a></td>
+</tr>
+<tr>
+<td class="r">25.</td>
+<td><a class="vip-of utt" href="/map/24?z=7Ab" title="u:VIP Гангстер:24:bg:5451k:390:202">Rocky_Balboa</a></td>
+<td class="r">17 333 011</td>
+<td><a class="gang" href="/gang/5?z=7Ab" title="g:0:67M:11:2:11">ФеновеНаМаргето</a></td>
+</tr>
+<tr>
+<td class="r">26.</td>
+<td><a class="vip-of utt" href="/map/330?z=7Ab" title="u:VIP Гангстер:330:bg:7377k:390:141">ГепиРолекса</a></td>
+<td class="r">17 043 834</td>
+<td><a class="gang" href="/gang/2?z=7Ab" title="g:2:78M:11:3:12">DreamTeam</a></td>
+</tr>
+<tr>
+<td class="r">27.</td>
+<td><a class="vip-on utt" href="/map/352?z=7Ab" title="u:VIP Гангстер:0:bg:6001k:347:205">Зaлeзa</a></td>
+<td class="r">17 306 130</td>
+<td><a class="gang" href="/gang/6?z=7Ab" title="g:0:67M:6:0:12">BROTHERS</a></td>
+</tr>
+<tr>
+<td class="r">28.</td>
+<td><a class="vip-cop utt" href="/map/2734?z=7Ab" title="u:VIP Гангстер:2734:bg:5327k:406:140">NZT48</a></td>
+<td class="r">16 866 615</td>
+<td><span class="gang-no"> - </span></td>
+</tr>
+<tr>
+<td class="r">29.</td>
+<td><a class="fvip-on utt" href="/map/129?z=7Ab" title="u:VIP Мафиотка:-17:bg:5605k:360:232">Маргето</a></td>
+<td class="r">16 808 280</td>
+<td><a class="gang" href="/gang/5?z=7Ab" title="g:0:67M:11:2:11">ФеновеНаМаргето</a></td>
+</tr>
+<tr>
+<td class="r">30.</td>
+<td><a class="vip-of utt" href="/map/326?z=7Ab" title="u:VIP Гангстер:0:bg:4132k:360:190">Kobrata</a></td>
+<td class="r">16 792 517</td>
+<td><span class="gang-no"> - </span></td>
+</tr>
+</table>

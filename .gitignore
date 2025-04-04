@@ -9,6 +9,13 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+/html
+/data
+/config
+/.py
+/.sh
+/.txt
+
 
 # testing
 /coverage
@@ -46,3 +53,66 @@ password.txt
 # Large binary files
 *.traineddata
 /public/uploads/
+
+# IDE и редактори
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.vs/
+*.swp
+*.swo
+
+# Логове и временни файлове
+logs/
+*.log
+tmp/
+temp/
+
+# Файлове за кеширане
+.cache/
+.eslintcache
+.stylelintcache
+
+# Специфични за операционната система
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+Icon?
+
+# Специфични за Node.js
+.node_repl_history
+.npm
+
+# Специфични за Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.so
+.Python
+.coverage*
+
+# Бази данни
+*.sqlite
+*.sqlite3
+*.db
+
+# Документация и доклади
+/docs/
+/reports/
+
+# Други компилирани файлове и binary-та
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.out
+
