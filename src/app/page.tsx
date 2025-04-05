@@ -6,10 +6,10 @@ import { RankingTable } from "@/components/RankingTable";
 
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Calendar } from "lucide-react";
+
 import { useRouter } from "next/navigation";
-import { ScrapeButton } from "@/components/ScrapeButton";
+
+import Image from "next/image";
 
 // Тип за показване на статистика с daily_stats
 type PlayerWithStats = {
@@ -201,18 +201,14 @@ export default function Home() {
 				</h1>
 
 				{isSeasonStarted && (
-					<div className="bg-yellow-800 text-white p-6 rounded-lg mx-4 md:mx-8">
-						<div className="flex items-center mb-2">
-							<Calendar className="h-6 w-6 mr-2" />
-							<h2 className="text-xl font-bold">Нов сезон на BGMafia!</h2>
-						</div>
-						<p className="mb-2">
-							Новият сезон започва утре след 19:00 часа. Дотогава всички функции
-							за добавяне на данни са изключени.
-						</p>
-						<p className="text-yellow-300 font-semibold">
-							Очаквайте нови функционалности и подобрения в системата.
-						</p>
+					<div className="bg-yellow-800/20 text-white p-6 rounded-lg mx-4 md:mx-8">
+						<Image
+							src="/logo-big.png"
+							width={200}
+							height={200}
+							className="mx-auto "
+							alt="BGMafia Logo"
+						/>
 					</div>
 				)}
 
@@ -232,20 +228,6 @@ export default function Home() {
 								>
 									История на класациите
 								</Button>
-
-								<Link href="/rankings/upload">
-									<Button disabled={!isSeasonStarted}>Добави показатели</Button>
-								</Link>
-
-								<Button
-									variant="default"
-									disabled={!isSeasonStarted}
-									onClick={() => {
-										router.push("/day-type");
-									}}
-								>
-									Добави ден
-								</Button>
 							</div>
 						</div>
 						{isLoading ? (
@@ -261,7 +243,6 @@ export default function Home() {
 						)}
 					</div>
 				</div>
-				<ScrapeButton />
 			</div>
 		</main>
 	);
