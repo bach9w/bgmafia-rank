@@ -245,43 +245,29 @@ export default function RankingsPage() {
 			try {
 				console.log("Опитваме да заредим седмични периоди...");
 
-				// Извличаме директно от таблицата daily_stats, групирани по седмица
+				// Извличаме седмичните периоди директно от weekly_rankings таблицата
 				const { data, error } = await supabase
-					.from("daily_stats")
-					.select("date")
-					.order("date", { ascending: false });
+					.from("weekly_rankings")
+					.select("week_start_date, week_end_date, player_id")
+					.order("week_start_date", { ascending: false });
 
 				if (error) {
-					console.error("SQL грешка при извличане на дати:", error);
+					console.error("SQL грешка при извличане на седмични периоди:", error);
 					throw error;
 				}
 
 				if (data && data.length > 0) {
-					// Групираме данните по седмици
+					// Групираме по седмици и броим играчите
 					const weekMap = new Map<string, WeeklyPeriod>();
 
-					data.forEach((item: { date: string }) => {
-						if (item.date) {
-							const date = new Date(item.date);
-							// Намираме началото на седмицата (събота)
-							const day = date.getDay(); // 0 - неделя, 6 - събота
-							const daysToSaturday = day === 6 ? 0 : (day + 1) % 7; // Изчисляваме дните до събота
-
-							const weekStart = new Date(date);
-							weekStart.setDate(date.getDate() - daysToSaturday);
-
-							const weekEnd = new Date(weekStart);
-							weekEnd.setDate(weekStart.getDate() + 6);
-
-							const weekStartStr = weekStart.toISOString().split("T")[0];
-							const weekEndStr = weekEnd.toISOString().split("T")[0];
-
-							const key = weekStartStr;
+					data.forEach((item) => {
+						if (item.week_start_date && item.week_end_date) {
+							const key = item.week_start_date;
 
 							if (!weekMap.has(key)) {
 								weekMap.set(key, {
-									week_start: weekStartStr,
-									week_end: weekEndStr,
+									week_start: item.week_start_date,
+									week_end: item.week_end_date,
 									player_count: 1,
 								});
 							} else {
@@ -353,9 +339,9 @@ export default function RankingsPage() {
 
 				const weekEnd = endDate.toISOString().split("T")[0];
 
-				// Извличаме данните директно от daily_stats с JOIN към players
+				// Използваме директно weekly_rankings таблицата
 				const { data, error } = await supabase
-					.from("daily_stats")
+					.from("weekly_rankings")
 					.select(
 						`
 						player_id,
@@ -364,11 +350,13 @@ export default function RankingsPage() {
 						sex,
 						victories,
 						experience,
+						total_score,
+						week_start_date,
+						week_end_date,
 						players(id, name)
 					`,
 					)
-					.gte("date", selectedWeekStart)
-					.lte("date", weekEnd);
+					.eq("week_start_date", selectedWeekStart);
 
 				if (error) {
 					console.error(
@@ -379,39 +367,9 @@ export default function RankingsPage() {
 				}
 
 				if (data && data.length > 0) {
-					// Агрегираме данните по играч
-					interface PlayerData {
-						id: string;
-						name: string;
-						strength: number;
-						intelligence: number;
-						sex: number;
-						victories: number;
-						experience: number;
-					}
-
-					interface PlayerWithId {
-						id: string;
-						name: string;
-					}
-
-					interface PlayerItem {
-						player_id: string;
-						strength: number;
-						intelligence: number;
-						sex: number;
-						victories: number;
-						experience: number;
-						players: PlayerWithId | PlayerWithId[] | null;
-					}
-
-					const playerMap = new Map<string, PlayerData>();
-
-					data.forEach((item: PlayerItem) => {
-						if (!item.players) return;
-
-						// Различни структури в зависимост от това как Supabase връща nested обекти
-						let playerInfo: PlayerWithId;
+					// Директно форматираме данните от таблицата
+					const formattedData: PlayerRanking[] = data.map((item) => {
+						let playerInfo;
 
 						if (Array.isArray(item.players)) {
 							playerInfo = item.players[0] || {
@@ -422,50 +380,22 @@ export default function RankingsPage() {
 							playerInfo = item.players;
 						}
 
-						const playerId = String(playerInfo.id || "");
-
-						if (!playerMap.has(playerId)) {
-							playerMap.set(playerId, {
-								id: playerId,
-								name: String(playerInfo.name || ""),
-								strength: Number(item.strength || 0),
-								intelligence: Number(item.intelligence || 0),
-								sex: Number(item.sex || 0),
-								victories: Number(item.victories || 0),
-								experience: Number(item.experience || 0),
-							});
-						} else {
-							const existing = playerMap.get(playerId)!;
-							existing.strength += Number(item.strength || 0);
-							existing.intelligence += Number(item.intelligence || 0);
-							existing.sex += Number(item.sex || 0);
-							existing.victories += Number(item.victories || 0);
-							existing.experience += Number(item.experience || 0);
-						}
-					});
-
-					// Превръщаме в масив и изчисляваме Нова атака
-					const formattedData: PlayerRanking[] = Array.from(
-						playerMap.values(),
-					).map((player) => {
-						const totalScore =
-							Math.round(player.strength * 0.3) +
-							Math.round(player.intelligence * 0.3) +
-							Math.round(player.sex * 0.4);
-
 						return {
-							id: player.id,
-							name: player.name,
-							strength: player.strength,
-							intelligence: player.intelligence,
-							sex: player.sex,
-							victories: player.victories,
-							experience: player.experience,
-							total_score: totalScore,
-							date: selectedWeekStart,
+							id: String(playerInfo.id || item.player_id || ""),
+							name: String(playerInfo.name || "Непознат играч"),
+							strength: Number(item.strength || 0),
+							intelligence: Number(item.intelligence || 0),
+							sex: Number(item.sex || 0),
+							victories: Number(item.victories || 0),
+							experience: Number(item.experience || 0),
+							total_score:
+								Math.round(Number(item.strength || 0) * 0.3) +
+								Math.round(Number(item.intelligence || 0) * 0.3) +
+								Math.round(Number(item.sex || 0) * 0.4),
+							date: item.week_start_date || selectedWeekStart,
 							day_type: `Седмица ${formatDateForDisplay(
-								selectedWeekStart,
-							)} - ${formatDateForDisplay(weekEnd)}`,
+								item.week_start_date || selectedWeekStart,
+							)} - ${formatDateForDisplay(item.week_end_date || weekEnd)}`,
 						};
 					});
 

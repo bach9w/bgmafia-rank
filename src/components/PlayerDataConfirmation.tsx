@@ -31,6 +31,8 @@ interface PlayerDataConfirmationProps {
 	onConfirm: (players: Player[]) => Promise<void>;
 	statType: StatType;
 	selectedDate?: string;
+	isWeekly?: boolean;
+	weekEndDate?: string;
 }
 
 export default function PlayerDataConfirmation({
@@ -40,6 +42,8 @@ export default function PlayerDataConfirmation({
 	onConfirm,
 	statType,
 	selectedDate = new Date().toISOString().split("T")[0],
+	isWeekly = false,
+	weekEndDate,
 }: PlayerDataConfirmationProps) {
 	const [editedPlayers, setEditedPlayers] = useState<Player[]>([]);
 	const [isSaving, setIsSaving] = useState(false);
@@ -198,8 +202,19 @@ export default function PlayerDataConfirmation({
 			<DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
-						Потвърждение на данните за {getStatTypeLabel(statType)} -{" "}
-						{formatDateForDisplay(selectedDate)}
+						{isWeekly ? (
+							<>
+								Потвърждение на данните за седмична класация -{" "}
+								{getStatTypeLabel(statType)} -{" "}
+								{formatDateForDisplay(selectedDate)} до{" "}
+								{formatDateForDisplay(weekEndDate || selectedDate)}
+							</>
+						) : (
+							<>
+								Потвърждение на данните за {getStatTypeLabel(statType)} -{" "}
+								{formatDateForDisplay(selectedDate)}
+							</>
+						)}
 					</DialogTitle>
 				</DialogHeader>
 

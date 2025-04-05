@@ -3,6 +3,7 @@ import { DailyStat } from "./database.types";
 export interface PlayerDetails {
 	id: string;
 	name: string;
+	profile_id: string;
 	stats: DailyStat[];
 	totalStats: {
 		strength: number;

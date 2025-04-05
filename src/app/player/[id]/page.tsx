@@ -61,6 +61,7 @@ export default function PlayerPage() {
 				const playerDetails: PlayerDetails = {
 					id: data.player.id,
 					name: data.player.name,
+					profile_id: data.player.profile_id,
 					stats: data.stats,
 					totalStats: data.totalStats,
 					recentActivity: data.recentActivity,
@@ -302,6 +303,19 @@ export default function PlayerPage() {
 								<CardContent className="text-center sm:text-left">
 									<div className="text-xl sm:text-2xl font-bold">
 										{playerData.totalStats.experience.toLocaleString()}
+									</div>
+								</CardContent>
+							</Card>
+							<Card className="bg-muted/50">
+								<CardHeader className="pb-2">
+									<CardTitle className="text-sm flex items-center justify-center sm:justify-start">
+										<Star className="h-4 w-4 mr-2 text-[var(--color-experience)]" />
+										КАРТА НОМЕР
+									</CardTitle>
+								</CardHeader>
+								<CardContent className="text-center sm:text-left">
+									<div className="text-xl sm:text-2xl font-bold">
+										{playerData.profile_id}
 									</div>
 								</CardContent>
 							</Card>

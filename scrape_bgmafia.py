@@ -90,30 +90,12 @@ def load_config():
         logging.error(f'Грешка при зареждане на конфигурацията: {e}')
         raise
 
-def save_table_data(html_content, category, page_num, timestamp):
-    """Извлича и записва HTML таблица и JSON данни."""
-    # Създаваме директорията за категорията
-    category_dir = HTML_DIR / category
-    category_dir.mkdir(exist_ok=True)
-    
-    # Записваме HTML файла
-    html_file = category_dir / f'{timestamp}_page{page_num}.html'
-    with open(html_file, 'w', encoding='utf-8') as f:
-        f.write(html_content)
-    logging.info(f'Запазен HTML файл: {html_file}')
-    
-    # Извличаме и записваме таблицата
+def extract_table_data(html_content):
+    """Извлича данни от HTML таблица."""
     soup = BeautifulSoup(html_content, 'html.parser')
     default_table = soup.find('table', class_='default')
     
     if default_table:
-        # Записваме HTML таблицата
-        table_file = category_dir / f'{timestamp}_page{page_num}_table.html'
-        with open(table_file, 'w', encoding='utf-8') as f:
-            f.write(str(default_table))
-        logging.info(f'Запазена таблица: {table_file}')
-        
-        # Извличаме данните в JSON формат
         table_data = []
         rows = default_table.find_all('tr')
         
@@ -129,18 +111,39 @@ def save_table_data(html_content, category, page_num, timestamp):
                             row_data[headers[i]] = cell.get_text(strip=True)
                     table_data.append(row_data)
             
-            # Записваме JSON файл
-            json_dir = DATA_DIR / category
-            json_dir.mkdir(exist_ok=True)
-            json_file = json_dir / f'{timestamp}_page{page_num}_data.json'
-            with open(json_file, 'w', encoding='utf-8') as f:
-                json.dump(table_data, f, ensure_ascii=False, indent=2)
-            logging.info(f'Запазени данни в JSON формат: {json_file}')
+            return table_data, default_table
+    
+    return [], None
+
+def save_html_content(html_content, category, page_num, timestamp):
+    """Записва HTML съдържание"""
+    # Създаваме директорията за категорията
+    category_dir = HTML_DIR / category
+    category_dir.mkdir(exist_ok=True)
+    
+    # Записваме HTML файла
+    html_file = category_dir / f'{timestamp}_page{page_num}.html'
+    with open(html_file, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    logging.info(f'Запазен HTML файл: {html_file}')
+    
+    return html_file
+
+def save_table_html(table_html, category, page_num, timestamp):
+    """Записва HTML таблица"""
+    if table_html:
+        category_dir = HTML_DIR / category
+        category_dir.mkdir(exist_ok=True)
         
-        return len(table_data)
-    else:
-        logging.warning(f'Не беше намерена таблица в категория {category}, страница {page_num}')
-        return 0
+        # Записваме HTML таблицата
+        table_file = category_dir / f'{timestamp}_page{page_num}_table.html'
+        with open(table_file, 'w', encoding='utf-8') as f:
+            f.write(str(table_html))
+        logging.info(f'Запазена таблица: {table_file}')
+        
+        return table_file
+    
+    return None
 
 def scrape_bgmafia():
     """Основна функция за извличане на данни от bgmafia.com"""
@@ -174,20 +177,21 @@ def scrape_bgmafia():
         'machine_id': '61230140',
         '__utmz': '29123503.1741378123.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none)',
         'lc': '1742333984',
-        'npc[min_level]': '18',
-        'npc[max_level]': '0',
         'cf_clearance': '_Eub.AjOUx75bQfXinqgkLW4jx5TsxibKAIG3lXjkyc-1743361217-1.2.1.1-qbNiK1ZTA6.21arKuWCmbRbmy4nqqCdfyirFS3pmQ097DX7NoLOiPnMCbgtImIGmtrGuKnPGQmtCZalPD55FCHbX._4AZ2z.EAp6EkmK.75DktgX14BmHFCH5Y6n5KkONKP9hdQaRk7JFCBahv7VKmg7fnbkq1YHTT5vD3V1CLB20IMQHDXasnguyIehxITnu6yOZMj1lcUpXOvBd69yIElGwmXJ8naaHrNN0l361GcjRJrN6MBGlvjrChaH_18k2VqaXeqPjgWddrTSn46.sERv3wepmADDaTV6Z.7_Dp9vcAnEUNugqfwtc.DQSSvMvtHwgDtp6iKorJSa9vvJuCIXVbtcp.QbgeR7hP0RIKcZ6SIVqrd9GrN1m.w5ZZhpAEq9KkM4BLT_j3tUL_ICzyEuowliSOAOZGluBrAXjHM',
         'terms_accepted': '1',
         'registered': '1',
         'auth': 'mH%2Bll7iTmWOgobB5X7NaG9w09kTzNsEVLn94k5lkoKGweV%2BzWo2bx6jf1c2mfqN%2FeJOZZaCXsHxq9g%3D%3D',
-        'world_id': '4',
-        'sess3': '1e0da9cf4f6b22a97e9d47ee8aa8855c',
-        '__utma': '29123503.1751747959.1741378123.1743682978.1743705971.32',
-        '__utmt': '1',
-        'fight_finder[online]': 'on',
+        'npc[min_level]': '18',
+        'npc[max_level]': '0',
+        '__utmc': '29123503',
         'fight_finder[min_level]': '22',
-        'clickcoords': '0',
-        '__utmb': '29123503.94.10.1743705971',
+        '__utma': '29123503.1751747959.1741378123.1743705971.1743785768.33',
+        '__utmb': '29123503.500.10.1743785768',
+        'world_id': '4',
+        'sess3': '17ce53bae0a269a471a7743d1b98a101',
+        'login': '1',
+        'fight_finder[online]': 'on',
+        'clickcoords': '1600721',
         'my-application-browser-tab': ''
     }
 
@@ -197,41 +201,41 @@ def scrape_bgmafia():
         'experience': {
             'name': 'Опит',
             'urls': [
-                {'url': 'https://bgmafia.com/top10/daily/experience?z=sHo', 'referer': 'https://bgmafia.com/top10/daily?z=P1p'},
-                {'url': 'https://bgmafia.com/top10/daily/experience/2?z=sHo', 'referer': 'https://bgmafia.com/top10/daily/experience?z=sHo'},
-                {'url': 'https://bgmafia.com/top10/daily/experience/3?z=sHo', 'referer': 'https://bgmafia.com/top10/daily/experience/2?z=sHo'}
+                {'url': 'https://bgmafia.com/top10/daily/experience?z=9tD', 'referer': 'https://bgmafia.com/top10/daily?z=QDo'},
+                {'url': 'https://bgmafia.com/top10/daily/experience/2?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/experience?z=9tD'},
+                {'url': 'https://bgmafia.com/top10/daily/experience/3?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/experience/2?z=9tD'}
             ]
         },
         'fight_wins': {
             'name': 'Победи',
             'urls': [
-                {'url': 'https://bgmafia.com/top10/daily/fight_wins?z=tMb', 'referer': 'https://bgmafia.com/top10/daily?z=P1p'},
-                {'url': 'https://bgmafia.com/top10/daily/fight_wins/2?z=tMb', 'referer': 'https://bgmafia.com/top10/daily/fight_wins?z=tMb'},
-                {'url': 'https://bgmafia.com/top10/daily/fight_wins/3?z=tMb', 'referer': 'https://bgmafia.com/top10/daily/fight_wins/2?z=tMb'}
+                {'url': 'https://bgmafia.com/top10/daily/fight_wins?z=9tD', 'referer': 'https://bgmafia.com/top10/daily?z=QDo'},
+                {'url': 'https://bgmafia.com/top10/daily/fight_wins/2?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/fight_wins?z=9tD'},
+                {'url': 'https://bgmafia.com/top10/daily/fight_wins/3?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/fight_wins/2?z=9tD'}
             ]
         },
         'strength': {
             'name': 'Сила',
             'urls': [
-                {'url': 'https://bgmafia.com/top10/daily/strength?z=iMk', 'referer': 'https://bgmafia.com/top10/daily?z=P1p'},
-                {'url': 'https://bgmafia.com/top10/daily/strength/2?z=iMk', 'referer': 'https://bgmafia.com/top10/daily/strength?z=iMk'},
-                {'url': 'https://bgmafia.com/top10/daily/strength/3?z=iMk', 'referer': 'https://bgmafia.com/top10/daily/strength/2?z=iMk'}
+                {'url': 'https://bgmafia.com/top10/daily/strength?z=9tD', 'referer': 'https://bgmafia.com/top10/daily?z=QDo'},
+                {'url': 'https://bgmafia.com/top10/daily/strength/2?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/strength?z=9tD'},
+                {'url': 'https://bgmafia.com/top10/daily/strength/3?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/strength/2?z=9tD'}
             ]
         },
         'intelect': {
             'name': 'Интелект',
             'urls': [
-                {'url': 'https://bgmafia.com/top10/daily/intelect?z=l4J', 'referer': 'https://bgmafia.com/top10/daily?z=P1p'},
-                {'url': 'https://bgmafia.com/top10/daily/intelect/2?z=l4J', 'referer': 'https://bgmafia.com/top10/daily/intelect?z=l4J'},
-                {'url': 'https://bgmafia.com/top10/daily/intelect/3?z=l4J', 'referer': 'https://bgmafia.com/top10/daily/intelect/2?z=l4J'}
+                {'url': 'https://bgmafia.com/top10/daily/intelect?z=9tD', 'referer': 'https://bgmafia.com/top10/daily?z=QDo'},
+                {'url': 'https://bgmafia.com/top10/daily/intelect/2?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/intelect?z=9tD'},
+                {'url': 'https://bgmafia.com/top10/daily/intelect/3?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/intelect/2?z=9tD'}
             ]
         },
         'sexapeal': {
             'name': 'Сексапил',
             'urls': [
-                {'url': 'https://bgmafia.com/top10/daily/sexapeal?z=kHx', 'referer': 'https://bgmafia.com/top10/daily?z=P1p'},
-                {'url': 'https://bgmafia.com/top10/daily/sexapeal/2?z=kHx', 'referer': 'https://bgmafia.com/top10/daily/sexapeal?z=kHx'},
-                {'url': 'https://bgmafia.com/top10/daily/sexapeal/3?z=kHx', 'referer': 'https://bgmafia.com/top10/daily/sexapeal/2?z=kHx'}
+                {'url': 'https://bgmafia.com/top10/daily/sexapeal?z=9tD', 'referer': 'https://bgmafia.com/top10/daily?z=QDo'},
+                {'url': 'https://bgmafia.com/top10/daily/sexapeal/2?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/sexapeal?z=9tD'},
+                {'url': 'https://bgmafia.com/top10/daily/sexapeal/3?z=9tD', 'referer': 'https://bgmafia.com/top10/daily/sexapeal/2?z=9tD'}
             ]
         }
     }
@@ -242,6 +246,9 @@ def scrape_bgmafia():
     try:
         for category_key, category_data in categories.items():
             logging.info(f"Обработка на категория: {category_data['name']}")
+            
+            # Инициализираме масив за съхранение на данните от всички страници за текущата категория
+            all_category_data = []
             
             for page_num, page_data in enumerate(category_data['urls'], 1):
                 # Настройваме хедъри с правилния referer
@@ -259,9 +266,26 @@ def scrape_bgmafia():
                     )
                     response.raise_for_status()
                     
-                    # Записваме страницата и извличаме данните
-                    records = save_table_data(response.text, category_key, page_num, timestamp)
-                    total_records += records
+                    # Записваме HTML съдържанието
+                    save_html_content(response.text, category_key, page_num, timestamp)
+                    
+                    # Извличаме данните от таблицата
+                    table_data, table_html = extract_table_data(response.text)
+                    
+                    if table_html:
+                        save_table_html(table_html, category_key, page_num, timestamp)
+                    
+                    if table_data:
+                        # Добавяме номер на страницата към всеки запис
+                        for item in table_data:
+                            item['page'] = page_num
+                        
+                        # Добавяме данните към общия масив
+                        all_category_data.extend(table_data)
+                        total_records += len(table_data)
+                        logging.info(f"Извлечени {len(table_data)} записа от страница {page_num}")
+                    else:
+                        logging.warning(f"Не бяха намерени данни в таблицата на страница {page_num}")
                     
                     # Кратка пауза между заявките
                     if page_num < len(category_data['urls']):
@@ -270,6 +294,15 @@ def scrape_bgmafia():
                 except requests.exceptions.RequestException as e:
                     logging.error(f"Грешка при заявка към {page_data['url']}: {e}")
                     continue
+            
+            # Записваме всички данни от категорията в един JSON файл
+            if all_category_data:
+                json_dir = DATA_DIR / category_key
+                json_dir.mkdir(exist_ok=True)
+                json_file = json_dir / f'{timestamp}_all_pages_data.json'
+                with open(json_file, 'w', encoding='utf-8') as f:
+                    json.dump(all_category_data, f, ensure_ascii=False, indent=2)
+                logging.info(f"Запазени всички данни за категория {category_data['name']} в: {json_file}")
         
         logging.info(f"Извличането на данни завърши успешно. Общо записи: {total_records}")
         

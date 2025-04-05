@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import HtmlTableImporter from "./HtmlTableImporter";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Тип на показателя
 export type StatType =
@@ -48,6 +49,9 @@ const dayTypeOptions = [
 
 // Тип за част от класацията
 export type RankingPart = "1" | "2";
+
+// Тип за периода на класацията
+export type RankingPeriod = "daily" | "weekly";
 
 // Интерфейс за данни от проверката на датата
 interface DateCheckResult {
@@ -80,6 +84,29 @@ export default function RankingsUploader() {
 	const [dateInfo, setDateInfo] = useState<DateCheckResult | null>(null);
 	const [selectedPart, setSelectedPart] = useState<RankingPart>("1"); // Ново състояние за частта
 	const [uploadMode, setUploadMode] = useState<"image" | "html">("image");
+	const [rankingPeriod, setRankingPeriod] = useState<RankingPeriod>("daily");
+	const [weekEndDate, setWeekEndDate] = useState<string>(
+		new Date().toISOString().split("T")[0],
+	);
+
+	// Изчисляване на началната дата на седмицата (понеделник) от крайната дата (неделя)
+	const calculateWeekStartDate = (endDate: string): string => {
+		const date = new Date(endDate);
+		const day = date.getDay();
+		// Ако днес е неделя (0), изваждаме 6 дни, за да стигнем до понеделник
+		// Иначе изваждаме (ден - 1) дни, за да стигнем до понеделник
+		const daysToSubtract = day === 0 ? 6 : day - 1;
+		date.setDate(date.getDate() - daysToSubtract);
+		return date.toISOString().split("T")[0];
+	};
+
+	// Автоматично изчисляване на началната дата на седмицата при промяна на крайната дата
+	useEffect(() => {
+		if (rankingPeriod === "weekly") {
+			const startDate = calculateWeekStartDate(weekEndDate);
+			setSelectedDate(startDate);
+		}
+	}, [weekEndDate, rankingPeriod]);
 
 	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
@@ -105,10 +132,25 @@ export default function RankingsUploader() {
 		setSelectedPart(value as RankingPart);
 	};
 
-	// Проверка на датата
+	const handleWeekEndDateChange = (
+		event: React.ChangeEvent<HTMLInputElement>,
+	) => {
+		setWeekEndDate(event.target.value);
+	};
+
+	const handleRankingPeriodChange = (value: string) => {
+		setRankingPeriod(value as RankingPeriod);
+		// Ако сменяме на седмична класация, изчисляваме началната дата от текущата крайна дата
+		if (value === "weekly") {
+			const startDate = calculateWeekStartDate(weekEndDate);
+			setSelectedDate(startDate);
+		}
+	};
+
+	// Проверка на датата - модифицирана да работи и за седмични класации
 	useEffect(() => {
 		const checkDate = async () => {
-			if (!selectedDate) return;
+			if (!selectedDate || rankingPeriod === "weekly") return;
 
 			try {
 				setIsCheckingDate(true);
@@ -144,7 +186,7 @@ export default function RankingsUploader() {
 		};
 
 		checkDate();
-	}, [selectedDate, selectedDayType]);
+	}, [selectedDate, selectedDayType, rankingPeriod]);
 
 	const handleUpload = async () => {
 		if (!selectedFile && uploadMode === "image") {
@@ -218,18 +260,35 @@ export default function RankingsUploader() {
 			setIsProcessing(true);
 			setError(null);
 
+			// Динамично определяме endpoint-а според типа на класацията
+			const endpoint =
+				rankingPeriod === "daily"
+					? "/api/rankings/save"
+					: "/api/weekly-rankings/save";
+
+			// Подготвяме данните според типа на класацията
+			const postData =
+				rankingPeriod === "daily"
+					? {
+							players: confirmedPlayers,
+							statType: selectedStat,
+							date: selectedDate,
+							day_type: selectedDayType || undefined,
+					  }
+					: {
+							players: confirmedPlayers,
+							statType: selectedStat,
+							week_start_date: selectedDate,
+							week_end_date: weekEndDate,
+					  };
+
 			// Запазваме потвърдените данни в базата данни
-			const response = await fetch("/api/rankings/save", {
+			const response = await fetch(endpoint, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({
-					players: confirmedPlayers,
-					statType: selectedStat,
-					date: selectedDate,
-					day_type: selectedDayType || undefined, // Добавяме вида на деня
-				}),
+				body: JSON.stringify(postData),
 			});
 
 			if (!response.ok) {
@@ -259,14 +318,26 @@ export default function RankingsUploader() {
 			setIsConfirmationOpen(false);
 
 			// Показваме toast съобщение за успех
-			toast.success("Класацията беше успешно качена!", {
-				description: `Данните за ${
-					confirmedPlayers.length
-				} играчи бяха записани за дата ${formatDateForDisplay(selectedDate)}`,
-			});
+			if (rankingPeriod === "daily") {
+				toast.success("Класацията беше успешно качена!", {
+					description: `Данните за ${
+						confirmedPlayers.length
+					} играчи бяха записани за дата ${formatDateForDisplay(selectedDate)}`,
+				});
+			} else {
+				toast.success("Седмичната класация беше успешно качена!", {
+					description: `Данните за ${
+						confirmedPlayers.length
+					} играчи бяха записани за седмицата ${formatDateForDisplay(
+						selectedDate,
+					)} - ${formatDateForDisplay(weekEndDate)}`,
+				});
+			}
 
-			// Опресняваме информацията за датата
-			await checkDateInfo();
+			// Опресняваме информацията за датата, ако е дневна класация
+			if (rankingPeriod === "daily") {
+				await checkDateInfo();
+			}
 		} catch (err) {
 			console.error("Грешка при запазване:", err);
 			setError(
@@ -354,236 +425,436 @@ export default function RankingsUploader() {
 					<CardTitle>Качване на показатели</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<div className="flex flex-col gap-4">
-						<div className="flex flex-col gap-2">
-							<label htmlFor="stat-type" className="text-sm font-medium">
-								Изберете тип показател
-							</label>
-							<Select value={selectedStat} onValueChange={handleStatChange}>
-								<SelectTrigger id="stat-type" className="w-full">
-									<SelectValue placeholder="Изберете показател" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="strength">Сила</SelectItem>
-									<SelectItem value="intelligence">Интелект</SelectItem>
-									<SelectItem value="sex">Секс</SelectItem>
-									<SelectItem value="victories">Победи</SelectItem>
-									<SelectItem value="experience">Опит</SelectItem>
-								</SelectContent>
-							</Select>
-							{isStatAlreadyExists() && (
-								<div className="flex items-center p-2 mt-1 bg-amber-50 text-amber-800 rounded-md text-sm">
-									<AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
-									<span>
-										Внимание: Вече има данни за {getStatTypeLabel(selectedStat)}{" "}
-										на тази дата!
-									</span>
-								</div>
-							)}
-						</div>
+					<Tabs defaultValue="daily" onValueChange={handleRankingPeriodChange}>
+						<TabsList className="grid w-full grid-cols-2 mb-4">
+							<TabsTrigger value="daily">Дневна класация</TabsTrigger>
+							<TabsTrigger value="weekly">Седмична класация</TabsTrigger>
+						</TabsList>
 
-						<div className="flex flex-col gap-2">
-							<label htmlFor="ranking-date" className="text-sm font-medium">
-								Дата на класацията
-							</label>
-							<div className="flex flex-col gap-1">
-								<Input
-									id="ranking-date"
-									type="date"
-									value={selectedDate}
-									onChange={handleDateChange}
-									min="2000-01-01"
-									className="w-full"
-								/>
-								<p className="text-sm text-gray-500">
-									Избрана дата: {formatDateForDisplay(selectedDate)}
-								</p>
-							</div>
-
-							{isCheckingDate && (
-								<div className="flex items-center p-2 bg-gray-50 text-gray-600 rounded-md text-sm">
-									<LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
-									<span>Проверка на данните за тази дата...</span>
-								</div>
-							)}
-
-							{dateInfo && dateInfo.hasData && (
-								<div className="flex items-center p-2 bg-blue-50 text-blue-800 rounded-md text-sm">
-									<InfoIcon className="h-4 w-4 mr-2 flex-shrink-0" />
-									<div>
-										<p>
-											За тази дата вече има {dateInfo.playersCount} играчи с
-											данни.
-										</p>
-										<p className="mt-1">
-											Показатели:{" "}
-											{dateInfo.stats.strength && (
-												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
-													Сила
-												</span>
-											)}
-											{dateInfo.stats.intelligence && (
-												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
-													Интелект
-												</span>
-											)}
-											{dateInfo.stats.sex && (
-												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
-													Секс
-												</span>
-											)}
-											{dateInfo.stats.victories && (
-												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
-													Победи
-												</span>
-											)}
-											{dateInfo.stats.experience && (
-												<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
-													Опит
-												</span>
-											)}
-										</p>
-									</div>
-								</div>
-							)}
-						</div>
-
-						<div className="flex flex-col gap-2">
-							<label htmlFor="day-type" className="text-sm font-medium">
-								Вид на деня (незадължително)
-							</label>
-							<Select
-								value={selectedDayType || undefined}
-								onValueChange={handleDayTypeChange}
-							>
-								<SelectTrigger id="day-type" className="w-full">
-									<SelectValue placeholder="Изберете вид на деня" />
-								</SelectTrigger>
-								<SelectContent>
-									{dayTypeOptions.map((option) => (
-										<SelectItem key={option} value={option}>
-											{option}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-
-							{dateInfo && dateInfo.day_type && (
-								<div
-									className={`flex items-center p-2 mt-1 rounded-md text-sm ${
-										selectedDayType === dateInfo.day_type
-											? "bg-green-50 text-green-800"
-											: "bg-amber-50 text-amber-800"
-									}`}
-								>
-									{selectedDayType === dateInfo.day_type ? (
-										<>
-											<CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-											<span>
-												Съвпада със зададения вид на деня: {dateInfo.day_type}
-											</span>
-										</>
-									) : (
-										<>
-											<AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
-											<span>
-												Внимание: За тази дата вече е зададен вид:{" "}
-												{dateInfo.day_type}
-											</span>
-										</>
-									)}
-								</div>
-							)}
-						</div>
-
-						<div className="flex flex-col gap-2">
-							<label className="text-sm font-medium">
-								Изберете метод за въвеждане
-							</label>
-							<div className="flex gap-2">
-								<Button
-									variant={uploadMode === "image" ? "default" : "outline"}
-									onClick={() => setUploadMode("image")}
-									type="button"
-									className="flex-1"
-								>
-									<LoaderCircle className="mr-2 h-4 w-4" />
-									Качване на изображение
-								</Button>
-								<Button
-									variant={uploadMode === "html" ? "default" : "outline"}
-									onClick={() => setUploadMode("html")}
-									type="button"
-									className="flex-1"
-								>
-									<FileText className="mr-2 h-4 w-4" />
-									Импортиране от HTML
-								</Button>
-							</div>
-						</div>
-
-						{uploadMode === "image" ? (
-							<>
+						<TabsContent value="daily">
+							<div className="flex flex-col gap-4">
 								<div className="flex flex-col gap-2">
-									<label htmlFor="ranking-part" className="text-sm font-medium">
-										Част на класацията
+									<label htmlFor="stat-type" className="text-sm font-medium">
+										Изберете тип показател
 									</label>
-									<Select value={selectedPart} onValueChange={handlePartChange}>
-										<SelectTrigger id="ranking-part" className="w-full">
-											<SelectValue placeholder="Изберете част" />
+									<Select value={selectedStat} onValueChange={handleStatChange}>
+										<SelectTrigger id="stat-type" className="w-full">
+											<SelectValue placeholder="Изберете показател" />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="1">Част 1 (Започва от 1)</SelectItem>
-											<SelectItem value="2">Част 2 (Започва от 31)</SelectItem>
+											<SelectItem value="strength">Сила</SelectItem>
+											<SelectItem value="intelligence">Интелект</SelectItem>
+											<SelectItem value="sex">Секс</SelectItem>
+											<SelectItem value="victories">Победи</SelectItem>
+											<SelectItem value="experience">Опит</SelectItem>
 										</SelectContent>
 									</Select>
-									<p className="text-sm text-gray-500">
-										Използвайте, ако класацията е разделена на няколко снимки.
-									</p>
+									{isStatAlreadyExists() && (
+										<div className="flex items-center p-2 mt-1 bg-amber-50 text-amber-800 rounded-md text-sm">
+											<AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
+											<span>
+												Внимание: Вече има данни за{" "}
+												{getStatTypeLabel(selectedStat)} на тази дата!
+											</span>
+										</div>
+									)}
 								</div>
 
 								<div className="flex flex-col gap-2">
-									<label htmlFor="file-upload" className="text-sm font-medium">
-										Изберете изображение с класацията
+									<label htmlFor="ranking-date" className="text-sm font-medium">
+										Дата на класацията
 									</label>
-									<Input
-										id="file-upload"
-										type="file"
-										accept="image/*"
-										onChange={handleFileChange}
-										disabled={isUploading || isProcessing}
-										className="w-full"
-									/>
+									<div className="flex flex-col gap-1">
+										<Input
+											id="ranking-date"
+											type="date"
+											value={selectedDate}
+											onChange={handleDateChange}
+											min="2000-01-01"
+											className="w-full"
+										/>
+										<p className="text-sm text-gray-500">
+											Избрана дата: {formatDateForDisplay(selectedDate)}
+										</p>
+									</div>
+
+									{isCheckingDate && (
+										<div className="flex items-center p-2 bg-gray-50 text-gray-600 rounded-md text-sm">
+											<LoaderCircle className="h-4 w-4 mr-2 animate-spin" />
+											<span>Проверка на данните за тази дата...</span>
+										</div>
+									)}
+
+									{dateInfo && dateInfo.hasData && (
+										<div className="flex items-center p-2 bg-blue-50 text-blue-800 rounded-md text-sm">
+											<InfoIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+											<div>
+												<p>
+													За тази дата вече има {dateInfo.playersCount} играчи с
+													данни.
+												</p>
+												<p className="mt-1">
+													Показатели:{" "}
+													{dateInfo.stats.strength && (
+														<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+															Сила
+														</span>
+													)}
+													{dateInfo.stats.intelligence && (
+														<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+															Интелект
+														</span>
+													)}
+													{dateInfo.stats.sex && (
+														<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+															Секс
+														</span>
+													)}
+													{dateInfo.stats.victories && (
+														<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+															Победи
+														</span>
+													)}
+													{dateInfo.stats.experience && (
+														<span className="inline-block px-1 mr-1 bg-gray-200 rounded">
+															Опит
+														</span>
+													)}
+												</p>
+											</div>
+										</div>
+									)}
 								</div>
 
-								{error && (
-									<div className="text-red-600 text-sm p-2 bg-red-50 rounded">
-										{error}
-									</div>
-								)}
+								<div className="flex flex-col gap-2">
+									<label htmlFor="day-type" className="text-sm font-medium">
+										Вид на деня (незадължително)
+									</label>
+									<Select
+										value={selectedDayType || undefined}
+										onValueChange={handleDayTypeChange}
+									>
+										<SelectTrigger id="day-type" className="w-full">
+											<SelectValue placeholder="Изберете вид на деня" />
+										</SelectTrigger>
+										<SelectContent>
+											{dayTypeOptions.map((option) => (
+												<SelectItem key={option} value={option}>
+													{option}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 
-								<Button
-									onClick={handleUpload}
-									disabled={!selectedFile || isUploading || isProcessing}
-									className="w-full"
-								>
-									{isUploading || isProcessing ? (
-										<>
-											<LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-											{isUploading ? "Обработка..." : "Запазване..."}
-										</>
-									) : (
-										"Качи изображение"
+									{dateInfo && dateInfo.day_type && (
+										<div
+											className={`flex items-center p-2 mt-1 rounded-md text-sm ${
+												selectedDayType === dateInfo.day_type
+													? "bg-green-50 text-green-800"
+													: "bg-amber-50 text-amber-800"
+											}`}
+										>
+											{selectedDayType === dateInfo.day_type ? (
+												<>
+													<CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
+													<span>
+														Съвпада със зададения вид на деня:{" "}
+														{dateInfo.day_type}
+													</span>
+												</>
+											) : (
+												<>
+													<AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
+													<span>
+														Внимание: За тази дата вече е зададен вид:{" "}
+														{dateInfo.day_type}
+													</span>
+												</>
+											)}
+										</div>
 									)}
-								</Button>
-							</>
-						) : (
-							<HtmlTableImporter
-								onImport={handleHtmlImport}
-								statType={selectedStat}
-							/>
-						)}
-					</div>
+								</div>
+
+								<div className="flex flex-col gap-2">
+									<label className="text-sm font-medium">
+										Изберете метод за въвеждане
+									</label>
+									<div className="flex gap-2">
+										<Button
+											variant={uploadMode === "image" ? "default" : "outline"}
+											onClick={() => setUploadMode("image")}
+											type="button"
+											className="flex-1"
+										>
+											<LoaderCircle className="mr-2 h-4 w-4" />
+											Качване на изображение
+										</Button>
+										<Button
+											variant={uploadMode === "html" ? "default" : "outline"}
+											onClick={() => setUploadMode("html")}
+											type="button"
+											className="flex-1"
+										>
+											<FileText className="mr-2 h-4 w-4" />
+											Импортиране от HTML
+										</Button>
+									</div>
+								</div>
+
+								{uploadMode === "image" ? (
+									<>
+										<div className="flex flex-col gap-2">
+											<label
+												htmlFor="ranking-part"
+												className="text-sm font-medium"
+											>
+												Част на класацията
+											</label>
+											<Select
+												value={selectedPart}
+												onValueChange={handlePartChange}
+											>
+												<SelectTrigger id="ranking-part" className="w-full">
+													<SelectValue placeholder="Изберете част" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="1">
+														Част 1 (Започва от 1)
+													</SelectItem>
+													<SelectItem value="2">
+														Част 2 (Започва от 31)
+													</SelectItem>
+												</SelectContent>
+											</Select>
+											<p className="text-sm text-gray-500">
+												Използвайте, ако класацията е разделена на няколко
+												снимки.
+											</p>
+										</div>
+
+										<div className="flex flex-col gap-2">
+											<label
+												htmlFor="file-upload"
+												className="text-sm font-medium"
+											>
+												Изберете изображение с класацията
+											</label>
+											<Input
+												id="file-upload"
+												type="file"
+												accept="image/*"
+												onChange={handleFileChange}
+												disabled={isUploading || isProcessing}
+												className="w-full"
+											/>
+										</div>
+
+										{error && (
+											<div className="text-red-600 text-sm p-2 bg-red-50 rounded">
+												{error}
+											</div>
+										)}
+
+										<Button
+											onClick={handleUpload}
+											disabled={!selectedFile || isUploading || isProcessing}
+											className="w-full"
+										>
+											{isUploading || isProcessing ? (
+												<>
+													<LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+													{isUploading ? "Обработка..." : "Запазване..."}
+												</>
+											) : (
+												"Качи изображение"
+											)}
+										</Button>
+									</>
+								) : (
+									<HtmlTableImporter
+										onImport={handleHtmlImport}
+										statType={selectedStat}
+									/>
+								)}
+							</div>
+						</TabsContent>
+
+						<TabsContent value="weekly">
+							<div className="flex flex-col gap-4">
+								<div className="flex flex-col gap-2">
+									<label
+										htmlFor="stat-type-weekly"
+										className="text-sm font-medium"
+									>
+										Изберете тип показател
+									</label>
+									<Select value={selectedStat} onValueChange={handleStatChange}>
+										<SelectTrigger id="stat-type-weekly" className="w-full">
+											<SelectValue placeholder="Изберете показател" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="strength">Сила</SelectItem>
+											<SelectItem value="intelligence">Интелект</SelectItem>
+											<SelectItem value="sex">Секс</SelectItem>
+											<SelectItem value="victories">Победи</SelectItem>
+											<SelectItem value="experience">Опит</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+
+								<div className="flex flex-col sm:flex-row gap-4">
+									<div className="flex-1 flex flex-col gap-2">
+										<label
+											htmlFor="week-start-date"
+											className="text-sm font-medium"
+										>
+											Начална дата (понеделник)
+										</label>
+										<div className="flex flex-col gap-1">
+											<Input
+												id="week-start-date"
+												type="date"
+												value={selectedDate}
+												disabled={true}
+												className="w-full bg-gray-50"
+											/>
+											<p className="text-xs text-gray-500">
+												Автоматично изчислено:{" "}
+												{formatDateForDisplay(selectedDate)}
+											</p>
+										</div>
+									</div>
+
+									<div className="flex-1 flex flex-col gap-2">
+										<label
+											htmlFor="week-end-date"
+											className="text-sm font-medium"
+										>
+											Крайна дата (неделя)
+										</label>
+										<div className="flex flex-col gap-1">
+											<Input
+												id="week-end-date"
+												type="date"
+												value={weekEndDate}
+												onChange={handleWeekEndDateChange}
+												min="2000-01-01"
+												className="w-full"
+											/>
+											<p className="text-xs text-gray-500">
+												Избрана дата: {formatDateForDisplay(weekEndDate)}
+											</p>
+										</div>
+									</div>
+								</div>
+
+								<div className="flex flex-col gap-2">
+									<label className="text-sm font-medium">
+										Изберете метод за въвеждане
+									</label>
+									<div className="flex gap-2">
+										<Button
+											variant={uploadMode === "image" ? "default" : "outline"}
+											onClick={() => setUploadMode("image")}
+											type="button"
+											className="flex-1"
+										>
+											<LoaderCircle className="mr-2 h-4 w-4" />
+											Качване на изображение
+										</Button>
+										<Button
+											variant={uploadMode === "html" ? "default" : "outline"}
+											onClick={() => setUploadMode("html")}
+											type="button"
+											className="flex-1"
+										>
+											<FileText className="mr-2 h-4 w-4" />
+											Импортиране от HTML
+										</Button>
+									</div>
+								</div>
+
+								{uploadMode === "image" ? (
+									<>
+										<div className="flex flex-col gap-2">
+											<label
+												htmlFor="ranking-part-weekly"
+												className="text-sm font-medium"
+											>
+												Част на класацията
+											</label>
+											<Select
+												value={selectedPart}
+												onValueChange={handlePartChange}
+											>
+												<SelectTrigger
+													id="ranking-part-weekly"
+													className="w-full"
+												>
+													<SelectValue placeholder="Изберете част" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="1">
+														Част 1 (Започва от 1)
+													</SelectItem>
+													<SelectItem value="2">
+														Част 2 (Започва от 31)
+													</SelectItem>
+												</SelectContent>
+											</Select>
+											<p className="text-sm text-gray-500">
+												Използвайте, ако класацията е разделена на няколко
+												снимки.
+											</p>
+										</div>
+
+										<div className="flex flex-col gap-2">
+											<label
+												htmlFor="file-upload-weekly"
+												className="text-sm font-medium"
+											>
+												Изберете изображение с класацията
+											</label>
+											<Input
+												id="file-upload-weekly"
+												type="file"
+												accept="image/*"
+												onChange={handleFileChange}
+												disabled={isUploading || isProcessing}
+												className="w-full"
+											/>
+										</div>
+
+										{error && (
+											<div className="text-red-600 text-sm p-2 bg-red-50 rounded">
+												{error}
+											</div>
+										)}
+
+										<Button
+											onClick={handleUpload}
+											disabled={!selectedFile || isUploading || isProcessing}
+											className="w-full"
+										>
+											{isUploading || isProcessing ? (
+												<>
+													<LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+													{isUploading ? "Обработка..." : "Запазване..."}
+												</>
+											) : (
+												"Качи изображение"
+											)}
+										</Button>
+									</>
+								) : (
+									<HtmlTableImporter
+										onImport={handleHtmlImport}
+										statType={selectedStat}
+									/>
+								)}
+							</div>
+						</TabsContent>
+					</Tabs>
 				</CardContent>
 			</Card>
 
@@ -594,6 +865,8 @@ export default function RankingsUploader() {
 				onConfirm={handleConfirm}
 				statType={selectedStat}
 				selectedDate={selectedDate}
+				isWeekly={rankingPeriod === "weekly"}
+				weekEndDate={rankingPeriod === "weekly" ? weekEndDate : undefined}
 			/>
 		</div>
 	);
